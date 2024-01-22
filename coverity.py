@@ -34,7 +34,8 @@ def execute_command():
     try:
         cubesuite_path = file_path_vars["cubesuite"].get()
         mtpj_path = file_path_vars["mtpj"].get()
-        command = f"{cubesuite_path} /cbr {mtpj_path}"
+        dir_path = file_path_vars["cov_build"].get()
+        command = f"cov-build --dir {dir_path} {cubesuite_path} /cbr {mtpj_path}"
 
         # 명령어 실행
         subprocess.run(command, shell=True, check=True)
@@ -83,7 +84,10 @@ input_entry.pack(side="left", padx=10)
 input_entry.bind("<KeyRelease>", process_input_dir)
 
 
-# cov-build 명령어 입력
-cov_build = file_path_vars["cubesuite"].get() + " /cbr" + " " + file_path_vars["mtpj"].get(); 
-print(cov_build)
+# 명령어 실행 버튼
+execute_button = ctk.CTkButton(app, text="Execute Command", command=execute_command)
+execute_button.pack(side="top", padx=10, pady=10)
+
+
+
 app.mainloop()
