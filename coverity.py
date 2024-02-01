@@ -8,6 +8,9 @@ import time
 import os
 import glob
 
+import yaml
+
+
 ctk.set_appearance_mode("dark")
 ctk.set_default_color_theme("blue")
 
@@ -26,7 +29,14 @@ file_path_vars = {
 }
 
 input_vars = {
-    "dir": ctk.StringVar(app)
+    "dir": ctk.StringVar(app),
+}
+
+analyze_vars = {
+    "url": ctk.StringVar(app),
+    "stream": ctk.StringVar(app),
+    "id": ctk.StringVar(app),
+    "password": ctk.StringVar(app)
 }
 
 radio_var = ctk.StringVar(value="clean and build")  # Default selection
@@ -74,7 +84,7 @@ def execute_command():
         mtpj_path = file_path_vars["mtpj"].get()
         dir_path = file_path_vars["cov_build"].get()
 
-        command = f"cov-build --dir {dir_path} {cubesuite_path} {command_arg} {mtpj_path}"
+        command = f"cov-build --dir \"{dir_path}\" \"{cubesuite_path}\" {command_arg} \"{mtpj_path}\""
 
         # 명령어 실행
         # subprocess.run(command, shell=True, check=True)
@@ -88,7 +98,7 @@ def execute_command():
 
 def execute_configure_command():
     try:
-        command = f"cov-configure --comptype renesascc:rx --compiler ccrx -template"
+        command = f"cov-configure --comptype renesascc:rx --compiler ccrx --template"
 
         # 명령어 실행
         # subprocess.run(command, shell=True, check=True)
@@ -100,6 +110,40 @@ def execute_configure_command():
     except subprocess.CalledProcessError as e:
         messagebox.showerror("Error", f"An error occurred: {e}")
 
+def execute_analyze_command():
+    try:
+        dir_path = file_path_vars["cov_build"].get()
+
+        command = f"cov-analyze --dir \"{dir_path}\""
+
+        # 명령어 실행
+        # subprocess.run(command, shell=True, check=True)
+        process = subprocess.Popen(command, shell=True, stdout=subprocess.PIPE, stderr=subprocess.STDOUT, text=True)
+        threading.Thread(target=read_output, args=(process, output_queue), daemon=True).start()
+        threading.Thread(target=update_output, args=(output_text, output_queue), daemon=True).start()
+        
+        messagebox.showinfo("Success", command + "\nCommand executed successfully!")
+    except subprocess.CalledProcessError as e:
+        messagebox.showerror("Error", f"An error occurred: {e}")
+
+def excute_commit_defects_command() :
+    try :
+        dir_path = file_path_vars["cov_build"].get()
+        id = analyze_vars["id"].get()
+        stream = analyze_vars["stream"].get()
+        password = analyze_vars["password"].get()
+        url = analyze_vars["url"].get()
+
+        command = f"cov-commit-defects --dir \"{dir_path}\" --stream {stream} --url {url} --user {id} --password {password}"
+
+        # 명령어 실행
+        process = subprocess.Popen(command, shell=True, stdout=subprocess.PIPE, stderr=subprocess.STDOUT, text=True)
+        threading.Thread(target=read_output, args=(process, output_queue), daemon=True).start()
+        threading.Thread(target=update_output, args=(output_text, output_queue), daemon=True).start()
+        
+        messagebox.showinfo("Success", command + "\nCommand executed successfully!")
+    except subprocess.CalledProcessError as e:
+        messagebox.showerror("Error", f"An error occurred: {e}")
 
 # 버튼과 레이블 생성 함수
 def create_path_selector(parent, key, text, is_file=False, is_mtpj=False):
@@ -137,7 +181,7 @@ def on_radio_select():
 
 def auto_set_csplus_path():
     # csplus_path = "C:\\Program Files (x86)\\Renesas Electronics\\CS+\\CC\\CubeSuite+.exe"
-    csplus_path = "C:\\Program Files (x86)"
+    csplus_path = "C:\\Program Files (x86)\\Renesas Electronics\\CS+\\CC\\CubeSuite+.exe"
     # cs+ 실제로 있는지 확인
     if os.path.exists(csplus_path):
         # 경로 변수에 Windows 경로 설정
@@ -145,6 +189,41 @@ def auto_set_csplus_path():
         messagebox.showinfo("Path Found", f"CubeSuite+ path set to {csplus_path}")
     else:
         messagebox.showerror("Path Not Found", "Could not find the C:\\Program Files (x86)\\Renesas Electronics\\CS+\\CC\\CubeSuite+.exe \n찾기에 실패하였습니다. \n직접 폴더 경로를 지정해주세요.")
+
+def open_config():
+    py_dir = os.path.dirname(__file__)
+    config_dir = os.path.join(py_dir, "ezcov_config.yaml")
+    try : 
+        with open(config_dir,'r') as yaml_file: 
+            config = yaml.safe_load(yaml_file)
+            messagebox.showinfo("Get Config", f"설정을 정상적으로 가져왔습니다.")
+    except FileNotFoundError :
+        messagebox.showerror("Config File Not Found", "설정 파일 찾기 실패. \n같은 경로에 설정 파일이 없습니다.")
+        return None
+    return config
+
+def write_config() :
+    py_dir = os.path.dirname(__file__)
+    config_dir = os.path.join(py_dir, "ezcov_config.yaml")
+    try : 
+        with open(config_dir,'w') as yaml_file: 
+            config = yaml.safe_load(yaml_file)
+            messagebox.showinfo("Get Config", f"설정을 정상적으로 가져왔습니다.")
+    except FileNotFoundError :
+        messagebox.showerror("Config File Not Found", "설정 파일 찾기 실패. \n같은 경로에 설정 파일이 없습니다.")
+        return None
+    return config
+
+def get_config_analyze():
+    config = open_config()
+
+    analyze_vars["id"].set(config['analyze']['id'])
+    analyze_vars["stream"].set(config['analyze']['stream'])
+    analyze_vars["password"].set(config['analyze']['password'])
+    analyze_vars["url"].set(config['analyze']['url'])
+    # print(analyze_vars)
+
+
 
 # Frame for buttons
 buttons_frame = ctk.CTkFrame(app)
@@ -157,6 +236,10 @@ auto_find_button.pack(side="left", padx=10)
 # Create and place the command execution button in the buttons frame
 execute_configure_button = ctk.CTkButton(buttons_frame, text="Execute Configure Command", command=execute_configure_command)
 execute_configure_button.pack(side="left", padx=10)
+
+# 
+get_config_button = ctk.CTkButton(buttons_frame, text="get config", command=get_config_analyze)
+get_config_button.pack(side="left", padx=10)
 
 # 버튼과 레이블 생성
 create_path_selector(app, "cubesuite", "Select CubeSuite file", is_file=True)
@@ -173,12 +256,9 @@ input_entry.pack(side="left", padx=10)
 
 input_entry.bind("<KeyRelease>", process_input_dir)
 
-
 # Frame for radio buttons
 radio_frame = ctk.CTkFrame(app)
 radio_frame.pack(pady=20)
-
-
 
 # Radio buttons
 radio_build = ctk.CTkRadioButton(radio_frame, text="Build", variable=radio_var, value="build", command=on_radio_select)
@@ -190,10 +270,17 @@ radio_clean_build.grid(row=0, column=1, padx=10)
 radio_rebuild = ctk.CTkRadioButton(radio_frame, text="Rebuild", variable=radio_var, value="rebuild", command=on_radio_select)
 radio_rebuild.grid(row=0, column=2, padx=10)
 
-# 명령어 실행 버튼
-execute_button = ctk.CTkButton(app, text="Execute Command", command=execute_command)
+# cov-build 명령어 실행 버튼
+execute_button = ctk.CTkButton(app, text="Execute cov-build Command", command=execute_command)
 execute_button.pack(side="top", padx=10, pady=10)
 
+# cov-analyze 명령어 실행 버튼
+execute_analyze_button = ctk.CTkButton(app, text="Execute cov-analyze Command", command=execute_analyze_command)
+execute_analyze_button.pack(side="top", padx=10, pady=10)
+
+# cov-commit-defects 명령어 실행 버튼
+execute_commit_button = ctk.CTkButton(app, text="Execute cov-commit-defects Command", command=excute_commit_defects_command)
+execute_commit_button.pack(side="top", padx=10, pady=10)
 
 output_text = scrolledtext.ScrolledText(app, height=15)
 output_text.pack(fill=ctk.BOTH, expand=True, padx=10, pady=10)
@@ -202,11 +289,9 @@ app.mainloop()
 
 
 """
-    
-    import os
 
 def find_folder_path(root_dir, folder_name):
-    for dirpath, dirnames, filenames in os.walk(root_dir):
+    for dirpath, dirnames in os.walk(root_dir):
         # dirnames는 현재 디렉토리의 하위 디렉토리 목록입니다.
         if folder_name in dirnames:
             return os.path.join(dirpath, folder_name)
