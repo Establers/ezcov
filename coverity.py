@@ -10,9 +10,18 @@ import glob
 
 import yaml
 
+"""
+
+Todo
+1. 웹서버 오픈하는거 열기
+2. cov-... 버튼 성공 유무 판단해서 다음꺼 실행할 수 있게
+    2.1. cov-... 명령어 만족못할 경우 실패 메시지 및 처리
+3. GUI 좀 더 버튼처럼 고치기... 맞추기
+
+"""
 
 ctk.set_appearance_mode("dark")
-ctk.set_default_color_theme("blue")
+ctk.set_default_color_theme("C:\\Users\\SAC\\Desktop\\ezcov_theme.json")
 
 app = ctk.CTk()
 app.title("EZ Coverity")
@@ -223,7 +232,9 @@ def get_config_analyze():
     analyze_vars["url"].set(config['analyze']['url'])
     # print(analyze_vars)
 
-
+def open_website():
+    # when Click this button, open the server website
+    pass
 
 # Frame for buttons
 buttons_frame = ctk.CTkFrame(app)
