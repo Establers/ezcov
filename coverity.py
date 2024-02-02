@@ -16,7 +16,8 @@ Todo
 1. 웹서버 오픈하는거 열기
 2. cov-... 버튼 성공 유무 판단해서 다음꺼 실행할 수 있게
     2.1. cov-... 명령어 만족못할 경우 실패 메시지 및 처리
-3. GUI 좀 더 버튼처럼 고치기... 맞추기
+3. GUI 좀 더 버튼처럼 고치기... 맞추기 크기도 맞추기.
+4. 스크롤바 GUI 고치기 
 
 """
 
@@ -236,6 +237,25 @@ def open_website():
     # when Click this button, open the server website
     pass
 
+def check_command(command) : 
+    
+    if command == "cov_build" :
+        output_content = output_text.get("1.0", "end-1c")
+        if output_content in "어떤..것"
+
+        
+    elif command == "cov_analyze" :
+
+
+    elif command == "cov_analyze" :
+
+
+    else :
+        pass
+
+    
+
+
 # Frame for buttons
 buttons_frame = ctk.CTkFrame(app)
 buttons_frame.pack(side="top", fill="x", padx=10, pady=10)
@@ -293,7 +313,7 @@ execute_analyze_button.pack(side="top", padx=10, pady=10)
 execute_commit_button = ctk.CTkButton(app, text="Execute cov-commit-defects Command", command=excute_commit_defects_command)
 execute_commit_button.pack(side="top", padx=10, pady=10)
 
-output_text = scrolledtext.ScrolledText(app, height=15)
+output_text = ctk.CTkTextbox(app, height=15, activate_scrollbars=True)
 output_text.pack(fill=ctk.BOTH, expand=True, padx=10, pady=10)
 
 app.mainloop()
