@@ -10,14 +10,16 @@ import glob
 
 import yaml
 
+import webbrowser
 """
 
 Todo
-1. 웹서버 오픈하는거 열기
+1. 웹서버 오픈하는거 열기 -- 반쯤 완성
 2. cov-... 버튼 성공 유무 판단해서 다음꺼 실행할 수 있게
     2.1. cov-... 명령어 만족못할 경우 실패 메시지 및 처리
 3. GUI 좀 더 버튼처럼 고치기... 맞추기 크기도 맞추기.
 4. 스크롤바 GUI 고치기 
+5. commit 끝났을 때 페이지 열까? 버튼 만들기
 
 """
 
@@ -235,20 +237,24 @@ def get_config_analyze():
 
 def open_website():
     # when Click this button, open the server website
-    pass
+    open_url = analyze_vars["url"].get()
+    webbrowser.open(open_url)
+
 
 def check_command(command) : 
     
     if command == "cov_build" :
         output_content = output_text.get("1.0", "end-1c")
-        if output_content in "어떤..것"
+        if output_content in "Success" :
+            pass
 
         
     elif command == "cov_analyze" :
 
+        pass
 
     elif command == "cov_analyze" :
-
+        pass
 
     else :
         pass
@@ -271,6 +277,10 @@ execute_configure_button.pack(side="left", padx=10)
 # 
 get_config_button = ctk.CTkButton(buttons_frame, text="get config", command=get_config_analyze)
 get_config_button.pack(side="left", padx=10)
+
+# 
+get_open_url_button = ctk.CTkButton(buttons_frame, text="Open Coverity Web", command=open_website)
+get_open_url_button.pack(side="left", padx=10)
 
 # 버튼과 레이블 생성
 create_path_selector(app, "cubesuite", "Select CubeSuite file", is_file=True)
