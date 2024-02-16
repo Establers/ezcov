@@ -1,7 +1,8 @@
 import customtkinter as ctk
-from tkinter import filedialog, messagebox, scrolledtext
+from tkinter import filedialog, messagebox, scrolledtext, Tk, Canvas
 import subprocess
 import threading
+
 import queue
 import time
 
@@ -9,28 +10,41 @@ import os
 import glob
 
 import yaml
-
 import webbrowser
+from req import *
+
+# from tooltip import create_tooltip
+from CTkToolTip import *
+from config import *
+
+import json
 """
 
 Todo
-1. 웹서버 오픈하는거 열기 -- 반쯤 완성
+-- 1. 웹서버 오픈하는거 열기 -- 반쯤 완성
 2. cov-... 버튼 성공 유무 판단해서 다음꺼 실행할 수 있게
     2.1. cov-... 명령어 만족못할 경우 실패 메시지 및 처리
+    2.2 반쪽 짜리 기능은 완성... 
 3. GUI 좀 더 버튼처럼 고치기... 맞추기 크기도 맞추기.
 4. 스크롤바 GUI 고치기 
 5. commit 끝났을 때 페이지 열까? 버튼 만들기
-
+6. get으로 request .-> stream 목록 만들기
 """
 
 ctk.set_appearance_mode("dark")
-ctk.set_default_color_theme("C:\\Users\\SAC\\Desktop\\ezcov_theme.json")
+
+theme_json_dir = os.path.dirname(__file__)
+theme_json_path = os.path.join(theme_json_dir, "ezcov_theme.json")
+ctk.set_default_color_theme(theme_json_path)
 
 app = ctk.CTk()
 app.title("EZ Coverity")
 app.geometry("800x760")
 
+### Globla Variable ###
+excute_step = 0
 output_queue = queue.Queue()
+
 
 # 경로를 저장할 StringVar 객체 생성
 file_path_vars = {
@@ -53,6 +67,8 @@ analyze_vars = {
 
 radio_var = ctk.StringVar(value="clean and build")  # Default selection
 command_arg = "/bcb"
+
+### ### ### ### ### ###
 
 def read_output(process, queue):
     for line in iter(process.stdout.readline, ''):
@@ -90,24 +106,6 @@ def find_path(key, is_file=False, is_mtpj=False):
     if path:
         file_path_vars[key].set(path)
 
-def execute_command():
-    try:
-        cubesuite_path = file_path_vars["cubesuite"].get()
-        mtpj_path = file_path_vars["mtpj"].get()
-        dir_path = file_path_vars["cov_build"].get()
-
-        command = f"cov-build --dir \"{dir_path}\" \"{cubesuite_path}\" {command_arg} \"{mtpj_path}\""
-
-        # 명령어 실행
-        # subprocess.run(command, shell=True, check=True)
-        process = subprocess.Popen(command, shell=True, stdout=subprocess.PIPE, stderr=subprocess.STDOUT, text=True)
-        threading.Thread(target=read_output, args=(process, output_queue), daemon=True).start()
-        threading.Thread(target=update_output, args=(output_text, output_queue), daemon=True).start()
-        
-        messagebox.showinfo("Success", command + "\nCommand executed successfully!")
-    except subprocess.CalledProcessError as e:
-        messagebox.showerror("Error", f"An error occurred: {e}")
-
 def execute_configure_command():
     try:
         command = f"cov-configure --comptype renesascc:rx --compiler ccrx --template"
@@ -122,7 +120,32 @@ def execute_configure_command():
     except subprocess.CalledProcessError as e:
         messagebox.showerror("Error", f"An error occurred: {e}")
 
+def execute_command():
+    global excute_step
+    excute_step = 0
+    try:
+        cubesuite_path = file_path_vars["cubesuite"].get()
+        mtpj_path = file_path_vars["mtpj"].get()
+        dir_path = file_path_vars["cov_build"].get()
+
+        command = f"cov-build --dir \"{dir_path}\" \"{cubesuite_path}\" {command_arg} \"{mtpj_path}\""
+
+        # 명령어 실행
+        # subprocess.run(command, shell=True, check=True)
+        process = subprocess.Popen(command, shell=True, stdout=subprocess.PIPE, stderr=subprocess.STDOUT, text=True)
+        threading.Thread(target=read_output, args=(process, output_queue), daemon=True).start()
+        threading.Thread(target=update_output, args=(output_text, output_queue), daemon=True).start()
+        
+        messagebox.showinfo("Success", command + "\nCommand executed successfully!")
+        excute_step = 1
+    except subprocess.CalledProcessError as e:
+        messagebox.showerror("Error", f"An error occurred: {e}")
+
 def execute_analyze_command():
+    global excute_step
+    if excute_step != 1 : 
+        messagebox.showerror("Error", f"cov-build 부터 수행해주세요.\ncode: e_s=={excute_step}")
+        return
     try:
         dir_path = file_path_vars["cov_build"].get()
 
@@ -135,10 +158,15 @@ def execute_analyze_command():
         threading.Thread(target=update_output, args=(output_text, output_queue), daemon=True).start()
         
         messagebox.showinfo("Success", command + "\nCommand executed successfully!")
+        excute_step = 2
     except subprocess.CalledProcessError as e:
         messagebox.showerror("Error", f"An error occurred: {e}")
 
 def excute_commit_defects_command() :
+    global excute_step
+    if excute_step != 2 : 
+        messagebox.showerror("Error", f"cov-analyze를 수행해주세요.\ncode: e_s=={excute_step}")
+        return
     try :
         dir_path = file_path_vars["cov_build"].get()
         id = analyze_vars["id"].get()
@@ -154,8 +182,38 @@ def excute_commit_defects_command() :
         threading.Thread(target=update_output, args=(output_text, output_queue), daemon=True).start()
         
         messagebox.showinfo("Success", command + "\nCommand executed successfully!")
+        excute_step = 3
     except subprocess.CalledProcessError as e:
         messagebox.showerror("Error", f"An error occurred: {e}")
+
+
+def excute_coverity_commit_local() :
+    """ 
+    coverit commit --local
+    ==========
+    서버에 업로드하지 않고 로컬에 결과를 분석하고 싶을 때 사용.(서버 사용못하는 경우)
+    1. 저장할 경로 선택
+    2. 선택 후, 명령어 실행
+    3. 취소 할 경우, 아무 명령어를 실행하지 않음
+    """
+    # 저장할 곳을 지정.
+    save_path = ""
+    try :
+        messagebox.showinfo("저장 폴더 설정", f"분석 결과를 저장할 폴더를 지정해주세요.")
+        save_path = filedialog.askdirectory()
+        if save_path == "" : return
+        dir_path = file_path_vars["cov_build"].get()
+        command = f"coverity commit --dir \"{dir_path}\" --local \"{save_path}\""
+
+        # 명령어 실행
+        process = subprocess.Popen(command, shell=True, stdout=subprocess.PIPE, stderr=subprocess.STDOUT, text=True)
+        threading.Thread(target=read_output, args=(process, output_queue), daemon=True).start()
+        threading.Thread(target=update_output, args=(output_text, output_queue), daemon=True).start()
+        
+        messagebox.showinfo("Success", command + "\nCommand executed successfully!")
+    except subprocess.CalledProcessError as e:
+        messagebox.showerror("Error", f"An error occurred: {e}")
+
 
 # 버튼과 레이블 생성 함수
 def create_path_selector(parent, key, text, is_file=False, is_mtpj=False):
@@ -165,7 +223,8 @@ def create_path_selector(parent, key, text, is_file=False, is_mtpj=False):
     button = ctk.CTkButton(
         master=frame, 
         text=text, 
-        command=lambda: find_path(key, is_file, is_mtpj)
+        command=lambda: find_path(key, is_file, is_mtpj),
+        width=200
     )
     button.pack(side="left", padx=10)
 
@@ -208,9 +267,11 @@ def open_config():
     try : 
         with open(config_dir,'r') as yaml_file: 
             config = yaml.safe_load(yaml_file)
-            messagebox.showinfo("Get Config", f"설정을 정상적으로 가져왔습니다.")
+            formatted_config = format_config(config)
+            config_button_tooltip = CTkToolTip(get_config_button, delay=0.1, message=f'{formatted_config}', justify="left")            
+            # messagebox.showinfo("Get Config", f"설정을 정상적으로 가져왔습니다.")
     except FileNotFoundError :
-        messagebox.showerror("Config File Not Found", "설정 파일 찾기 실패. \n같은 경로에 설정 파일이 없습니다.")
+        messagebox.showerror("Config File Not Found", f'{config_dir}\n설정 파일 찾기 실패. \n같은 경로에 설정 파일이 없습니다.')
         return None
     return config
 
@@ -240,7 +301,17 @@ def open_website():
     open_url = analyze_vars["url"].get()
     webbrowser.open(open_url)
 
+def refresh_server_status(app, url):
+    status = check_server_status(url)
+    print(status, "url : " , url)
+    if status :
+        server_status_label.configure(text="Connected", fg_color=("white", "#11ffaa"))
+    else :
+        server_status_label.configure(text="Disconnected", fg_color=("white", "#dd1111"))
+    app.after(10000, refresh_server_status, app,  analyze_vars["url"].get())
 
+
+## threading.Thread(target=lambda:app.after(100, refresh_server_status, app, url)).start()
 def check_command(command) : 
     
     if command == "cov_build" :
@@ -259,7 +330,35 @@ def check_command(command) :
     else :
         pass
 
-    
+def get_stream_list() :
+    url = analyze_vars["url"].get()
+    api = f'{url}/api/v2/streams?excludeRoles=false&locale=en_us&offset=0&rowCount=200'
+    print("api ", api)
+    streams = []
+    response = requests.get(api)
+    print(response.text)
+    # if response.status_code == 200 : 
+    #     # data = response.json()
+    #     data = json.loads(response.text)
+        
+    #     for n in data["streams"] :
+    #         streams.append(n)
+        
+    # else :
+    #     print("can not get response")
+    print(streams)
+    return streams
+
+def set_stream_list(event) :
+    """
+    콤보박스에서 선택한 stream 설정
+    """
+    stream = stream_combo_box.get()
+    analyze_vars["stream"].set(stream)
+
+def set_stream_combobox_list() :
+    s = get_stream_list()
+    stream_combo_box.configure(values=s)
 
 
 # Frame for buttons
@@ -274,19 +373,39 @@ auto_find_button.pack(side="left", padx=10)
 execute_configure_button = ctk.CTkButton(buttons_frame, text="Execute Configure Command", command=execute_configure_command)
 execute_configure_button.pack(side="left", padx=10)
 
-# 
+# 설정
 get_config_button = ctk.CTkButton(buttons_frame, text="get config", command=get_config_analyze)
 get_config_button.pack(side="left", padx=10)
+### init ###
+get_config_analyze()
 
-# 
+# Coverity Open
 get_open_url_button = ctk.CTkButton(buttons_frame, text="Open Coverity Web", command=open_website)
 get_open_url_button.pack(side="left", padx=10)
 
+# 서버 상태 확인
+server_status_label = ctk.CTkLabel(buttons_frame, text="Checking...", fg_color=("white", "gray"))
+server_status_label.pack(side="left", padx=10)
+## 서버 상태 확인
+refresh_server_status(app, analyze_vars["url"].get())
+
 # 버튼과 레이블 생성
-create_path_selector(app, "cubesuite", "Select CubeSuite file", is_file=True)
-create_path_selector(app, "coverity", "Select Coverity Directory Path ../bin")
-create_path_selector(app, "mtpj", "Select CS+ Project File *.mtpj", is_file=True, is_mtpj=True)
-create_path_selector(app, "cov_build", "cov-build 결과를 저장할 디렉토리 지정해주세요.")
+create_path_selector(app, "cubesuite", "CubeSuite file", is_file=True)
+create_path_selector(app, "coverity", "Coverity dir Path /bin")
+create_path_selector(app, "mtpj", "CS+ Project File *.mtpj", is_file=True, is_mtpj=True)
+create_path_selector(app, "cov_build", "cov-build set save dir")
+
+# stream 프레임
+stream_frame = ctk.CTkFrame(app)
+stream_frame.pack(side="top", fill="x", padx=10, pady=5)
+
+# strema 가져오기 버튼
+get_stream_list_button = ctk.CTkButton(stream_frame, text="Refresh Stream list", command=set_stream_combobox_list)
+get_stream_list_button.pack(side="left", padx=10)
+
+# stream 드롭다운
+stream_combo_box = ctk.CTkComboBox(stream_frame, values=['test', 'test2'], command=set_stream_list)
+stream_combo_box.pack(side="left", padx=10)
 
 # 입력 필드 프레임
 input_frame = ctk.CTkFrame(app)
@@ -311,17 +430,32 @@ radio_clean_build.grid(row=0, column=1, padx=10)
 radio_rebuild = ctk.CTkRadioButton(radio_frame, text="Rebuild", variable=radio_var, value="rebuild", command=on_radio_select)
 radio_rebuild.grid(row=0, column=2, padx=10)
 
+cov_frame = ctk.CTkFrame(app)
+cov_frame.pack(side="top", pady=20, fill="x")
+cov_frame.grid_columnconfigure(0, weight= 1)
+cov_frame.grid_columnconfigure(1, weight= 1)
+cov_frame.grid_columnconfigure(2, weight= 1)
+cov_frame.grid_columnconfigure(3, weight= 1)
+
+
 # cov-build 명령어 실행 버튼
-execute_button = ctk.CTkButton(app, text="Execute cov-build Command", command=execute_command)
-execute_button.pack(side="top", padx=10, pady=10)
+execute_button = ctk.CTkButton(cov_frame, text="cov-build", command=execute_command)
+# execute_button.pack(side="left", padx=10, pady=10)
+execute_button.grid(row=0, column=0, padx=10, pady=10)
 
 # cov-analyze 명령어 실행 버튼
-execute_analyze_button = ctk.CTkButton(app, text="Execute cov-analyze Command", command=execute_analyze_command)
-execute_analyze_button.pack(side="top", padx=10, pady=10)
+execute_analyze_button = ctk.CTkButton(cov_frame, text="cov-analyze", command=execute_analyze_command)
+# execute_analyze_button.pack(side="mid", padx=10, pady=10)
+execute_analyze_button.grid(row=0, column=1, padx=10, pady=10)
 
 # cov-commit-defects 명령어 실행 버튼
-execute_commit_button = ctk.CTkButton(app, text="Execute cov-commit-defects Command", command=excute_commit_defects_command)
-execute_commit_button.pack(side="top", padx=10, pady=10)
+execute_commit_button = ctk.CTkButton(cov_frame, text="cov-commit-defects", command=excute_commit_defects_command)
+# execute_commit_button.pack(side="right", padx=10, pady=10)
+execute_commit_button.grid(row=0, column=2, padx=10, pady=10)
+
+# coverity commit --local 명령어 실행 버튼
+execute_commit_button = ctk.CTkButton(cov_frame, text="coverity commit --local", command=excute_coverity_commit_local)
+execute_commit_button.grid(row=0, column=3, padx=10, pady=10)
 
 output_text = ctk.CTkTextbox(app, height=15, activate_scrollbars=True)
 output_text.pack(fill=ctk.BOTH, expand=True, padx=10, pady=10)
