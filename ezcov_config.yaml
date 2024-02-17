@@ -1,13 +1,14 @@
 path:
-  cubesuite:
-  save_dir: 
-  coverity: 
+  csplus_hew:
+  project_file:
+  coverity:
+  save_dir:  
 
 analyze:
   stream: 33
   id: 1111
   password: 2222
-  url: http:
+  url: www.naver.com
 
 
   

@@ -21,14 +21,28 @@ import json
 """
 
 Todo
--- 1. 웹서버 오픈하는거 열기 -- 반쯤 완성
-2. cov-... 버튼 성공 유무 판단해서 다음꺼 실행할 수 있게
+### -- 1. 웹서버 오픈하는거 열기
+###2. cov-... 버튼 성공 유무 판단해서 다음꺼 실행할 수 있게
     2.1. cov-... 명령어 만족못할 경우 실패 메시지 및 처리
     2.2 반쪽 짜리 기능은 완성... 
 3. GUI 좀 더 버튼처럼 고치기... 맞추기 크기도 맞추기.
-4. 스크롤바 GUI 고치기 
-5. commit 끝났을 때 페이지 열까? 버튼 만들기
-6. get으로 request .-> stream 목록 만들기
+### 4. 스크롤바 GUI 고치기 
+[보류] 5. commit 끝났을 때 페이지 열까? 버튼 만들기 
+6. get으로 request .-> stream 목록 만들기 (확인필요)
+    -> basic auth 사용
+    --> config 에서 가져오는 걸로 id pw 설정하기
+7. hew, cs+ 자동인식. (완)
+    cs : Cubesuite+.exe (완)
+        -> mtpj 파일 그대로 (완)
+    hew : hew2.exe (완)
+        -> mtpj 파일이 아니라 hws 파일 (완)
+        -> cov-build 명령어가 조금 다름 (완)
+8. 이번에 설정한 파일들을 저장하기 
+    8.1 파일명은 {YYMMDD_HHMM}_{프로젝트이름} --> 수동 파일명으로 구현
+    8.1 config 파일 골라서 불러오기 (모든 것들 다 불러옴) (완)
+    
+9. GUI 좀 뜯어고치기
+10. 
 """
 
 ctk.set_appearance_mode("dark")
@@ -44,14 +58,14 @@ app.geometry("800x760")
 ### Globla Variable ###
 excute_step = 0
 output_queue = queue.Queue()
-
+optionmenu_devenv =ctk.StringVar(app, value="CubeSuite+")
 
 # 경로를 저장할 StringVar 객체 생성
 file_path_vars = {
-    "cubesuite": ctk.StringVar(app),
     "coverity": ctk.StringVar(app),
-    "mtpj": ctk.StringVar(app),
-    "cov_build": ctk.StringVar(app)
+    "project_file": ctk.StringVar(app),
+    "save_dir": ctk.StringVar(app),
+    "csplus_hew": ctk.StringVar(app)
 }
 
 input_vars = {
@@ -94,10 +108,10 @@ def update_output(output_widget, output_queue):
     app.after(500, update)
 
 # 경로 찾기 함수 (재사용 가능)
-def find_path(key, is_file=False, is_mtpj=False):
+def find_path(key, is_file=False, is_project=False):
     if is_file:
-        if is_mtpj :
-            file_types = [('MTPJ files', '*.mtpj')]
+        if is_project :
+            file_types = [('Project File', '*.mtpj *.hws')]
             path = filedialog.askopenfilename(filetypes=file_types)
         else :  
             path = filedialog.askopenfilename()
@@ -106,9 +120,25 @@ def find_path(key, is_file=False, is_mtpj=False):
     if path:
         file_path_vars[key].set(path)
 
+def check_process(process, callback, step):
+    global excute_step
+    
+    if process.poll() is not None:  # 프로세스가 종료된 경우
+        excute_step = step
+        callback()  # 콜백 함수 호출
+    else:
+        app.after(500, lambda: check_process(process, callback))  # 500ms 후 다시 확인
+
+def on_process_complete(com):
+    messagebox.showinfo("Info", f'{com} 수행 완료')
+
 def execute_configure_command():
     try:
-        command = f"cov-configure --comptype renesascc:rx --compiler ccrx --template"
+        commands = [
+            "cov-configure --comptype renesascc:rx --compiler ccrx --template",
+            "cov-configure --comptype renesascc:r32c --compiler nc100 --template"
+        ]
+        command = " && ".join(commands)
 
         # 명령어 실행
         # subprocess.run(command, shell=True, check=True)
@@ -116,7 +146,7 @@ def execute_configure_command():
         threading.Thread(target=read_output, args=(process, output_queue), daemon=True).start()
         threading.Thread(target=update_output, args=(output_text, output_queue), daemon=True).start()
         
-        messagebox.showinfo("Success", command + "\nCommand executed successfully!")
+        # messagebox.showinfo("Success", command + "\nCommand executed successfully!")
     except subprocess.CalledProcessError as e:
         messagebox.showerror("Error", f"An error occurred: {e}")
 
@@ -124,20 +154,23 @@ def execute_command():
     global excute_step
     excute_step = 0
     try:
-        cubesuite_path = file_path_vars["cubesuite"].get()
-        mtpj_path = file_path_vars["mtpj"].get()
-        dir_path = file_path_vars["cov_build"].get()
-
-        command = f"cov-build --dir \"{dir_path}\" \"{cubesuite_path}\" {command_arg} \"{mtpj_path}\""
-
+        csplus_hew_path = file_path_vars["csplus_hew"].get()
+        project_file_path = file_path_vars["project_file"].get()
+        dir_path = file_path_vars["save_dir"].get()
+        
+        if "mtpj" in project_file_path[-4:] :
+            command = f"cov-build --dir \"{dir_path}\" \"{csplus_hew_path}\" {command_arg} \"{project_file_path}\""
+        elif "hws" in project_file_path[-4:] :
+            # HEW의 경우, 프로젝트에서 직접 빌드를 수행하고 프로젝트를 종료해야 함.
+            messagebox.showinfo("INFO", "HEW의 경우, 프로젝트에서 직접 빌드를 수행하고 프로젝트를 종료해야합니다.")
+            command = f"cov-build --dir \"{dir_path}\" \"{csplus_hew_path}\" \"ow {project_file_path}\""
         # 명령어 실행
         # subprocess.run(command, shell=True, check=True)
         process = subprocess.Popen(command, shell=True, stdout=subprocess.PIPE, stderr=subprocess.STDOUT, text=True)
         threading.Thread(target=read_output, args=(process, output_queue), daemon=True).start()
         threading.Thread(target=update_output, args=(output_text, output_queue), daemon=True).start()
         
-        messagebox.showinfo("Success", command + "\nCommand executed successfully!")
-        excute_step = 1
+        check_process(process, on_process_complete(command), 1)
     except subprocess.CalledProcessError as e:
         messagebox.showerror("Error", f"An error occurred: {e}")
 
@@ -147,7 +180,7 @@ def execute_analyze_command():
         messagebox.showerror("Error", f"cov-build 부터 수행해주세요.\ncode: e_s=={excute_step}")
         return
     try:
-        dir_path = file_path_vars["cov_build"].get()
+        dir_path = file_path_vars["save_dir"].get()
 
         command = f"cov-analyze --dir \"{dir_path}\""
 
@@ -157,8 +190,7 @@ def execute_analyze_command():
         threading.Thread(target=read_output, args=(process, output_queue), daemon=True).start()
         threading.Thread(target=update_output, args=(output_text, output_queue), daemon=True).start()
         
-        messagebox.showinfo("Success", command + "\nCommand executed successfully!")
-        excute_step = 2
+        check_process(process, on_process_complete(command), 2)
     except subprocess.CalledProcessError as e:
         messagebox.showerror("Error", f"An error occurred: {e}")
 
@@ -168,7 +200,7 @@ def excute_commit_defects_command() :
         messagebox.showerror("Error", f"cov-analyze를 수행해주세요.\ncode: e_s=={excute_step}")
         return
     try :
-        dir_path = file_path_vars["cov_build"].get()
+        dir_path = file_path_vars["save_dir"].get()
         id = analyze_vars["id"].get()
         stream = analyze_vars["stream"].get()
         password = analyze_vars["password"].get()
@@ -181,8 +213,7 @@ def excute_commit_defects_command() :
         threading.Thread(target=read_output, args=(process, output_queue), daemon=True).start()
         threading.Thread(target=update_output, args=(output_text, output_queue), daemon=True).start()
         
-        messagebox.showinfo("Success", command + "\nCommand executed successfully!")
-        excute_step = 3
+        check_process(process, on_process_complete(command), 3)
     except subprocess.CalledProcessError as e:
         messagebox.showerror("Error", f"An error occurred: {e}")
 
@@ -202,7 +233,7 @@ def excute_coverity_commit_local() :
         messagebox.showinfo("저장 폴더 설정", f"분석 결과를 저장할 폴더를 지정해주세요.")
         save_path = filedialog.askdirectory()
         if save_path == "" : return
-        dir_path = file_path_vars["cov_build"].get()
+        dir_path = file_path_vars["save_dir"].get()
         command = f"coverity commit --dir \"{dir_path}\" --local \"{save_path}\""
 
         # 명령어 실행
@@ -210,23 +241,38 @@ def excute_coverity_commit_local() :
         threading.Thread(target=read_output, args=(process, output_queue), daemon=True).start()
         threading.Thread(target=update_output, args=(output_text, output_queue), daemon=True).start()
         
-        messagebox.showinfo("Success", command + "\nCommand executed successfully!")
+        check_process(process, on_process_complete(command), 0)
     except subprocess.CalledProcessError as e:
         messagebox.showerror("Error", f"An error occurred: {e}")
 
 
+def tooltip_mapper(key) :
+    if key == "csplus_hew" :
+        return "Select CubeSuite+ or HEW"
+    
+    if key == "coverity" :
+        return "Select Coverity installed Directory \"bin\" path"
+    
+    if key == "project_file" :
+        return "CubeSuite+ : [*.mtpj]\nHEW : [*.hws]"
+    
+    if key == "save_dir" : 
+        return "Set a specific folder to save a result."
+
 # 버튼과 레이블 생성 함수
-def create_path_selector(parent, key, text, is_file=False, is_mtpj=False):
+def create_path_selector(parent, key, text, is_file=False, is_project=False):
     frame = ctk.CTkFrame(parent)
     frame.pack(side="top", fill="x", padx=10, pady=5)
 
     button = ctk.CTkButton(
         master=frame, 
         text=text, 
-        command=lambda: find_path(key, is_file, is_mtpj),
+        command=lambda: find_path(key, is_file, is_project),
         width=200
     )
     button.pack(side="left", padx=10)
+    
+    button_tooltip = CTkToolTip(button, delay=0.05, message=f'{tooltip_mapper(key)}', justify="left")
 
     label = ctk.CTkLabel(
         frame, 
@@ -250,16 +296,32 @@ def on_radio_select():
     else:  # rebuild
         command_arg = "/br"
 
-def auto_set_csplus_path():
-    # csplus_path = "C:\\Program Files (x86)\\Renesas Electronics\\CS+\\CC\\CubeSuite+.exe"
-    csplus_path = "C:\\Program Files (x86)\\Renesas Electronics\\CS+\\CC\\CubeSuite+.exe"
-    # cs+ 실제로 있는지 확인
-    if os.path.exists(csplus_path):
+def auto_set_devtool_path(choice) :
+    print("DevTool : ", choice)
+    if choice == "CubeSuite+" :
+        csplus_path = "C:\\Program Files (x86)\\Renesas Electronics\\CS+\\CC\\CubeSuite+.exe"
+        # cs+ 실제로 있는지 확인
+        if os.path.exists(csplus_path):
         # 경로 변수에 Windows 경로 설정
-        file_path_vars["cubesuite"].set(csplus_path)  # cubesuite 로 설정
-        messagebox.showinfo("Path Found", f"CubeSuite+ path set to {csplus_path}")
-    else:
-        messagebox.showerror("Path Not Found", "Could not find the C:\\Program Files (x86)\\Renesas Electronics\\CS+\\CC\\CubeSuite+.exe \n찾기에 실패하였습니다. \n직접 폴더 경로를 지정해주세요.")
+            file_path_vars["csplus_hew"].set(csplus_path)  # cubesuite 로 설정
+            messagebox.showinfo("Path Found", f"CubeSuite+ path set to {csplus_path}")
+        else:
+            messagebox.showerror("Path Not Found",\
+                "C:\\Program Files (x86)\\Renesas Electronics\\CS+\\CC\\CubeSuite+.exe\
+                    \n찾기에 실패하였습니다. \n직접 폴더 경로를 지정해주세요.")
+        
+    elif choice == "HEW" :
+        hew_path = "C:\\Program Files (x86)\\Renesas\\Hew\\hew2.exe"
+        # cs+ 실제로 있는지 확인
+        if os.path.exists(hew_path):
+            # 경로 변수에 Windows 경로 설정
+            file_path_vars["csplus_hew"].set(hew_path)  # cubesuite 로 설정
+            
+            messagebox.showinfo("Path Found", f"hew2 path set to {hew_path}")
+        else:
+            messagebox.showerror("Path Not Found", \
+                    "C:\\Program Files (x86)\\Renesas\\Hew\\hew2.exe\
+                    \n찾기에 실패하였습니다. \n직접 폴더 경로를 지정해주세요.")
 
 def open_config():
     py_dir = os.path.dirname(__file__)
@@ -268,25 +330,58 @@ def open_config():
         with open(config_dir,'r') as yaml_file: 
             config = yaml.safe_load(yaml_file)
             formatted_config = format_config(config)
-            config_button_tooltip = CTkToolTip(get_config_button, delay=0.1, message=f'{formatted_config}', justify="left")            
+            config_button_tooltip = CTkToolTip(get_config_button, delay=0.05, message=f'{formatted_config}', justify="left")            
             # messagebox.showinfo("Get Config", f"설정을 정상적으로 가져왔습니다.")
     except FileNotFoundError :
         messagebox.showerror("Config File Not Found", f'{config_dir}\n설정 파일 찾기 실패. \n같은 경로에 설정 파일이 없습니다.')
         return None
     return config
 
-def write_config() :
-    py_dir = os.path.dirname(__file__)
-    config_dir = os.path.join(py_dir, "ezcov_config.yaml")
-    try : 
-        with open(config_dir,'w') as yaml_file: 
-            config = yaml.safe_load(yaml_file)
-            messagebox.showinfo("Get Config", f"설정을 정상적으로 가져왔습니다.")
-    except FileNotFoundError :
-        messagebox.showerror("Config File Not Found", "설정 파일 찾기 실패. \n같은 경로에 설정 파일이 없습니다.")
-        return None
-    return config
+def save_config_yaml() :
+    config_dir = filedialog.asksaveasfilename(defaultextension=".yaml", 
+                                            filetypes=[("YAML files", "*.yaml"),("All files", "*.*")])
+    if not config_dir:  # If the user cancels the dialog, do nothing
+        return
+    
+    config = {
+        'path': {
+            'csplus_hew': file_path_vars["csplus_hew"].get(),
+            'project_file': file_path_vars["project_file"].get(),
+            'coverity': file_path_vars["coverity"].get(),
+            'save_dir': file_path_vars["save_dir"].get()
+        },
+        'analyze': {
+            'stream': analyze_vars["stream"].get(),
+            'id': analyze_vars["id"].get(),
+            'password': analyze_vars["password"].get(),
+            'url': analyze_vars["url"].get()
+        }
+    }
+        
+    with open(config_dir,'w') as yaml_file: 
+        yaml.dump(config, yaml_file, default_flow_style=False)
 
+def load_saved_config_yaml():
+    config_dir = filedialog.askopenfilename(filetypes=[("YAML files", "*.yaml"), ("All files", "*.*")])
+    if not config_dir:  # If the user cancels the dialog, do nothing
+        return
+
+    with open(config_dir, 'r') as yaml_file:
+        config = yaml.safe_load(yaml_file)
+        formatted_config = format_config(config)
+        load_button_tooltip = CTkToolTip(load_config_button, delay=0.05, 
+                                            message=f'{formatted_config}', justify="left") 
+        for key, value in config['path'].items() :
+            if key in file_path_vars :
+                file_path_vars[key].set(value)
+
+        for key, value in config['analyze'].items() :
+            if key in file_path_vars :
+                file_path_vars[key].set(value)
+                
+
+            
+                
 def get_config_analyze():
     config = open_config()
 
@@ -303,7 +398,7 @@ def open_website():
 
 def refresh_server_status(app, url):
     status = check_server_status(url)
-    print(status, "url : " , url)
+    # print(status, "url : " , url)
     if status :
         server_status_label.configure(text="Connected", fg_color=("white", "#11ffaa"))
     else :
@@ -311,41 +406,22 @@ def refresh_server_status(app, url):
     app.after(10000, refresh_server_status, app,  analyze_vars["url"].get())
 
 
-## threading.Thread(target=lambda:app.after(100, refresh_server_status, app, url)).start()
-def check_command(command) : 
-    
-    if command == "cov_build" :
-        output_content = output_text.get("1.0", "end-1c")
-        if output_content in "Success" :
-            pass
-
-        
-    elif command == "cov_analyze" :
-
-        pass
-
-    elif command == "cov_analyze" :
-        pass
-
-    else :
-        pass
-
 def get_stream_list() :
     url = analyze_vars["url"].get()
     api = f'{url}/api/v2/streams?excludeRoles=false&locale=en_us&offset=0&rowCount=200'
     print("api ", api)
     streams = []
-    response = requests.get(api)
-    print(response.text)
-    # if response.status_code == 200 : 
-    #     # data = response.json()
-    #     data = json.loads(response.text)
+    
+    response = requests.get(api, auth=HTTPBasicAuth(analyze_vars["id"], analyze_vars["password"]))
+    if response.status_code == 200 : 
+        data = response.json()
+
+        for n in data["streams"] :
+            str_name = n["name"]
+            streams.append(str_name)   
+    else :
+        print("can not get response")
         
-    #     for n in data["streams"] :
-    #         streams.append(n)
-        
-    # else :
-    #     print("can not get response")
     print(streams)
     return streams
 
@@ -357,7 +433,9 @@ def set_stream_list(event) :
     analyze_vars["stream"].set(stream)
 
 def set_stream_combobox_list() :
-    s = get_stream_list()
+    # s = get_stream_list()
+    s = ["test", "test2", "TEST3", "우치치"]
+    s.append(analyze_vars["stream"].get())
     stream_combo_box.configure(values=s)
 
 
@@ -365,13 +443,23 @@ def set_stream_combobox_list() :
 buttons_frame = ctk.CTkFrame(app)
 buttons_frame.pack(side="top", fill="x", padx=10, pady=10)
 
-# Create and place the automatic route finder button in the buttons frame
-auto_find_button = ctk.CTkButton(buttons_frame, text="Auto Find CubeSuite+ Path", command=auto_set_csplus_path)
+# Option Menu로 개발환경 구분하기
+auto_find_button = ctk.CTkOptionMenu(buttons_frame, values=["CubeSuite+", "HEW"],
+                                    command=auto_set_devtool_path,
+                                    variable=optionmenu_devenv)
 auto_find_button.pack(side="left", padx=10)
 
 # Create and place the command execution button in the buttons frame
-execute_configure_button = ctk.CTkButton(buttons_frame, text="Execute Configure Command", command=execute_configure_command)
+execute_configure_button = ctk.CTkButton(buttons_frame, text="cov-configure : RX, r32c", command=execute_configure_command)
 execute_configure_button.pack(side="left", padx=10)
+
+# 현 설정 값 yaml로 저장
+save_config_button = ctk.CTkButton(buttons_frame, text="Save config", command=save_config_yaml)
+save_config_button.pack(side="left", padx=10)
+
+# 저장한 yaml 파일 불러오기
+load_config_button = ctk.CTkButton(buttons_frame, text="Load config", command=load_saved_config_yaml)
+load_config_button.pack(side="left", padx=10)
 
 # 설정
 get_config_button = ctk.CTkButton(buttons_frame, text="get config", command=get_config_analyze)
@@ -380,32 +468,38 @@ get_config_button.pack(side="left", padx=10)
 get_config_analyze()
 
 # Coverity Open
-get_open_url_button = ctk.CTkButton(buttons_frame, text="Open Coverity Web", command=open_website)
+get_open_url_button = ctk.CTkButton(buttons_frame, text="Web", command=open_website)
 get_open_url_button.pack(side="left", padx=10)
 
 # 서버 상태 확인
 server_status_label = ctk.CTkLabel(buttons_frame, text="Checking...", fg_color=("white", "gray"))
 server_status_label.pack(side="left", padx=10)
+
 ## 서버 상태 확인
 refresh_server_status(app, analyze_vars["url"].get())
 
 # 버튼과 레이블 생성
-create_path_selector(app, "cubesuite", "CubeSuite file", is_file=True)
+create_path_selector(app, "csplus_hew", "Development Env", is_file=True)
 create_path_selector(app, "coverity", "Coverity dir Path /bin")
-create_path_selector(app, "mtpj", "CS+ Project File *.mtpj", is_file=True, is_mtpj=True)
-create_path_selector(app, "cov_build", "cov-build set save dir")
+create_path_selector(app, "project_file", "Project File", is_file=True, is_project=True)
+create_path_selector(app, "save_dir", "Set save folder")
 
 # stream 프레임
 stream_frame = ctk.CTkFrame(app)
 stream_frame.pack(side="top", fill="x", padx=10, pady=5)
 
-# strema 가져오기 버튼
+# stream 가져오기 버튼
 get_stream_list_button = ctk.CTkButton(stream_frame, text="Refresh Stream list", command=set_stream_combobox_list)
 get_stream_list_button.pack(side="left", padx=10)
 
-# stream 드롭다운
-stream_combo_box = ctk.CTkComboBox(stream_frame, values=['test', 'test2'], command=set_stream_list)
+# stream 콤보박스
+stream_combo_box = ctk.CTkComboBox(stream_frame, values=['test', 'test2'], command=set_stream_list,
+                                    variable=analyze_vars["stream"])
 stream_combo_box.pack(side="left", padx=10)
+
+# stream Label
+label = ctk.CTkLabel(stream_frame, textvariable=analyze_vars["stream"], fg_color="transparent")
+label.pack(side="right", padx=10)
 
 # 입력 필드 프레임
 input_frame = ctk.CTkFrame(app)
@@ -461,21 +555,3 @@ output_text = ctk.CTkTextbox(app, height=15, activate_scrollbars=True)
 output_text.pack(fill=ctk.BOTH, expand=True, padx=10, pady=10)
 
 app.mainloop()
-
-
-"""
-
-def find_folder_path(root_dir, folder_name):
-    for dirpath, dirnames in os.walk(root_dir):
-        # dirnames는 현재 디렉토리의 하위 디렉토리 목록입니다.
-        if folder_name in dirnames:
-            return os.path.join(dirpath, folder_name)
-    return None  # 폴더를 찾지 못한 경우 None 반환
-
-# 사용 예:
-folder_path = find_folder_path("C:/", "특정폴더이름")
-if folder_path:
-    print(f"Found folder at: {folder_path}")
-else:
-    print("Folder not found.")
-"""
