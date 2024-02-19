@@ -34,5 +34,6 @@ jobs:
         pyinstaller coverity.py --onedir --windowed \
         --add-data "ezcov_config.yaml:." \
         --add-data "ezcov_theme.json:." \
-        --icon "ezcov_icon.ico:."
+        --icon "ezcov_icon.ico:." \
+        --add-data "customtkiner:customtkinter/"
 
