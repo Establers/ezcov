@@ -35,5 +35,4 @@ jobs:
         --add-data "ezcov_config.yaml:." \
         --add-data "ezcov_theme.json:." \
         --icon "ezcov_icon.ico:." \
-        --hidden-import=customtkinter"
-
+        --hidden-import=customtkinter
