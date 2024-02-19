@@ -39,6 +39,8 @@ jobs:
 
     - uses : actions/upload-artifact@v4
       name : Download all workflow run artifacts
+      with :
+        path : dist/ezcov/*
 
 
     
