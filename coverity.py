@@ -127,7 +127,7 @@ def check_process(process, callback, step):
         excute_step = step
         callback()  # 콜백 함수 호출
     else:
-        app.after(500, lambda: check_process(process, callback))  # 500ms 후 다시 확인
+        app.after(500, lambda: check_process(process, callback, step))  # 500ms 후 다시 확인
 
 def on_process_complete(com):
     messagebox.showinfo("Info", f'{com} 수행 완료')
@@ -151,8 +151,7 @@ def execute_configure_command():
         messagebox.showerror("Error", f"An error occurred: {e}")
 
 def execute_command():
-    global excute_step
-    excute_step = 0
+
     try:
         csplus_hew_path = file_path_vars["csplus_hew"].get()
         project_file_path = file_path_vars["project_file"].get()
@@ -175,10 +174,7 @@ def execute_command():
         messagebox.showerror("Error", f"An error occurred: {e}")
 
 def execute_analyze_command():
-    global excute_step
-    if excute_step != 1 : 
-        messagebox.showerror("Error", f"cov-build 부터 수행해주세요.\ncode: e_s=={excute_step}")
-        return
+
     try:
         dir_path = file_path_vars["save_dir"].get()
 
@@ -195,10 +191,7 @@ def execute_analyze_command():
         messagebox.showerror("Error", f"An error occurred: {e}")
 
 def excute_commit_defects_command() :
-    global excute_step
-    if excute_step != 2 : 
-        messagebox.showerror("Error", f"cov-analyze를 수행해주세요.\ncode: e_s=={excute_step}")
-        return
+
     try :
         dir_path = file_path_vars["save_dir"].get()
         id = analyze_vars["id"].get()
@@ -407,12 +400,13 @@ def refresh_server_status(app, url):
 
 
 def get_stream_list() :
+    print("get_stream_list")
     url = analyze_vars["url"].get()
     api = f'{url}/api/v2/streams?excludeRoles=false&locale=en_us&offset=0&rowCount=200'
     print("api ", api)
     streams = []
     
-    response = requests.get(api, auth=HTTPBasicAuth(analyze_vars["id"], analyze_vars["password"]))
+    response = requests.get(api, auth=HTTPBasicAuth(analyze_vars["id"].get(), analyze_vars["password"].get()))
     if response.status_code == 200 : 
         data = response.json()
 
@@ -433,8 +427,8 @@ def set_stream_list(event) :
     analyze_vars["stream"].set(stream)
 
 def set_stream_combobox_list() :
-    # s = get_stream_list()
-    s = ["test", "test2", "TEST3", "우치치"]
+    s = get_stream_list()
+    # s = ["test", "test2", "TEST3", "우치치"]
     s.append(analyze_vars["stream"].get())
     stream_combo_box.configure(values=s)
 
@@ -446,7 +440,7 @@ buttons_frame.pack(side="top", fill="x", padx=10, pady=10)
 # Option Menu로 개발환경 구분하기
 auto_find_button = ctk.CTkOptionMenu(buttons_frame, values=["CubeSuite+", "HEW"],
                                     command=auto_set_devtool_path,
-                                    variable=optionmenu_devenv)
+                                    variable=optionmenu_devenv, width=100)
 auto_find_button.pack(side="left", padx=10)
 
 # Create and place the command execution button in the buttons frame
@@ -454,25 +448,25 @@ execute_configure_button = ctk.CTkButton(buttons_frame, text="cov-configure : RX
 execute_configure_button.pack(side="left", padx=10)
 
 # 현 설정 값 yaml로 저장
-save_config_button = ctk.CTkButton(buttons_frame, text="Save config", command=save_config_yaml)
+save_config_button = ctk.CTkButton(buttons_frame, text="Save config", command=save_config_yaml, width=80)
 save_config_button.pack(side="left", padx=10)
 
 # 저장한 yaml 파일 불러오기
-load_config_button = ctk.CTkButton(buttons_frame, text="Load config", command=load_saved_config_yaml)
+load_config_button = ctk.CTkButton(buttons_frame, text="Load config", command=load_saved_config_yaml, width=80)
 load_config_button.pack(side="left", padx=10)
 
 # 설정
-get_config_button = ctk.CTkButton(buttons_frame, text="get config", command=get_config_analyze)
+get_config_button = ctk.CTkButton(buttons_frame, text="get config", command=get_config_analyze, width=80)
 get_config_button.pack(side="left", padx=10)
 ### init ###
 get_config_analyze()
 
 # Coverity Open
-get_open_url_button = ctk.CTkButton(buttons_frame, text="Web", command=open_website)
+get_open_url_button = ctk.CTkButton(buttons_frame, text="Web", command=open_website, width=50)
 get_open_url_button.pack(side="left", padx=10)
 
 # 서버 상태 확인
-server_status_label = ctk.CTkLabel(buttons_frame, text="Checking...", fg_color=("white", "gray"))
+server_status_label = ctk.CTkLabel(buttons_frame, text="Checking...", fg_color=("white", "gray"), width=50)
 server_status_label.pack(side="left", padx=10)
 
 ## 서버 상태 확인
