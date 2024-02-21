@@ -45,7 +45,7 @@ Todo
 10. 
 """
 
-ctk.set_appearance_mode("dark")
+ctk.set_appearance_mode("light")
 
 theme_json_dir = os.path.dirname(__file__)
 theme_json_path = os.path.join(theme_json_dir, "ezcov_theme.json")
@@ -441,9 +441,9 @@ def refresh_server_status(app, url):
     status = check_server_status(url)
     # print(status, "url : " , url)
     if status :
-        server_status_label.configure(text="Connected", text_color="#001100", fg_color=("white", "#55ee55"))
+        server_status_label.configure(text="Connected", text_color="#001100", fg_color=("#55ee55", "#55ee55"))
     else :
-        server_status_label.configure(text="Disconnected", text_color="#001100", fg_color=("white", "#ee5555"))
+        server_status_label.configure(text="Disconnected", text_color="#001100", fg_color=("#ee5555", "#ee5555"))
     app.after(10000, refresh_server_status, app,  analyze_vars["url"].get())
 
 
@@ -529,6 +529,9 @@ menu.add_command(label="about", command=about_menu_bar)
 menu.add_command(label="Help", command=help_menu_bar)
 menubar.add_cascade(labe="About", menu=menu)
 
+# 설정 폰트
+button_font = ctk.CTkFont(family="Noto Sans KR", size=13)
+
 # Frame for buttons
 buttons_frame = ctk.CTkFrame(app)
 buttons_frame.pack(side="top", fill="x", padx=10, pady=10)
@@ -541,17 +544,17 @@ auto_find_button.pack(side="left", padx=10)
 auto_find_button_tooltip = CTkToolTip(auto_find_button, delay=0.05, message=f'Coverity 검사를 진행할 프로젝트의 개발환경을 선택해주세요.', justify="left")
 
 # Create and place the command execution button in the buttons frame
-execute_configure_button = ctk.CTkButton(buttons_frame, text="cov-configure : RX, r32c", command=execute_configure_command)
+execute_configure_button = ctk.CTkButton(buttons_frame, text="RX, R32C 컴파일러 세팅", command=execute_configure_command)
 execute_configure_button.pack(side="left", padx=10)
 execute_configure_button_tooltip = CTkToolTip(execute_configure_button, delay=0.05, message=f'RX 시리즈와 r32c 시리즈 컴파일러 Coverity 설정을 합니다.', justify="left")
 
 # 현 설정 값 yaml로 저장
-save_config_button = ctk.CTkButton(buttons_frame, text="Save config", command=save_config_yaml, width=80)
+save_config_button = ctk.CTkButton(buttons_frame, text="현재 설정 저장", command=save_config_yaml, width=80)
 save_config_button.pack(side="left", padx=10)
 save_config_button_tooltip = CTkToolTip(save_config_button, delay=0.05, message=f'지금 설정한 id/pw 경로 및 파일들을 저장합니다.', justify="left")
 
 # 저장한 yaml 파일 불러오기
-load_config_button = ctk.CTkButton(buttons_frame, text="Load config", command=load_saved_config_yaml, width=80)
+load_config_button = ctk.CTkButton(buttons_frame, text="설정 불러오기", command=load_saved_config_yaml, width=80)
 load_config_button.pack(side="left", padx=10)
 
 # 설정
@@ -576,18 +579,18 @@ refresh_server_status(app, analyze_vars["url"].get())
 input_frame = ctk.CTkFrame(app)
 input_frame.pack(side="top", fill="x", padx=10, pady=10)
 
-label = ctk.CTkLabel(input_frame, text="ID", text_color="#ffffff", fg_color="transparent", width=20)
+label = ctk.CTkLabel(input_frame, text="ID", fg_color="transparent", width=20)
 label.pack(side="left", padx=10)
 input_entry_id = ctk.CTkEntry(input_frame, textvariable=analyze_vars["id"], placeholder_text="id")
 input_entry_id.pack(side="left", padx=0)
 
-
-label = ctk.CTkLabel(input_frame, text="PASSWORD", text_color="#ffffff", fg_color="transparent", width=30)
+label = ctk.CTkLabel(input_frame, text="PW", fg_color="transparent", width=30)
 label.pack(side="left", padx=10)
 input_entry_password = ctk.CTkEntry(input_frame, textvariable=analyze_vars["password"], placeholder_text="password")
 input_entry_password.pack(side="left", padx=0)
+input_entry_password.bind("<KeyRelease>", login_check_func)
 
-login_check_button = ctk.CTkButton(input_frame, text="Login Check", command=login_check_func, width=50)
+login_check_button = ctk.CTkButton(input_frame, text="ID PW Check", command=login_check_func, width=50)
 login_check_button.pack(side="left", padx=10)
 login_check_button_tooltip = CTkToolTip(login_check_button, delay=0.05, message=f'ID와 Password가 유효한지 검사합니다.', justify="left")
 
@@ -595,17 +598,17 @@ login_check_label = ctk.CTkLabel(input_frame, text="로그인 검사 필요", te
 login_check_label.pack(side="left", padx=0)
 
 # 버튼과 레이블 생성
-create_path_selector(app, "csplus_hew", "Development Env", is_file=True)
-create_path_selector(app, "coverity", "Coverity dir Path /bin")
-create_path_selector(app, "project_file", "Project File", is_file=True, is_project=True)
-create_path_selector(app, "save_dir", "Set save folder")
+create_path_selector(app, "csplus_hew", "개발환경", is_file=True)
+# create_path_selector(app, "coverity", "Coverity dir Path /bin")
+create_path_selector(app, "project_file", "프로젝트 파일", is_file=True, is_project=True)
+create_path_selector(app, "save_dir", "결과 저장 및 분석할 폴더")
 
 # stream 프레임
 stream_frame = ctk.CTkFrame(app)
 stream_frame.pack(side="top", fill="x", padx=10, pady=5)
 
 # stream 가져오기 버튼
-get_stream_list_button = ctk.CTkButton(stream_frame, text="Refresh Stream list", command=set_stream_combobox_list, width=180)
+get_stream_list_button = ctk.CTkButton(stream_frame, text="새로고침", command=set_stream_combobox_list, width=180)
 get_stream_list_button.pack(side="left", padx=10)
 stream_list_tooltip = CTkToolTip(get_stream_list_button, delay=0.05, message=f'스트림 항목을 다시 불러옵니다.', justify="left")
 
@@ -623,53 +626,60 @@ radio_frame = ctk.CTkFrame(app)
 radio_frame.pack(pady=20)
 
 # Radio buttons
+radio_button_label = ctk.CTkLabel(radio_frame, text="CubeSuite+", text_color="#ffffff", fg_color="transparent", width=80)
+radio_button_label.grid(row=0, column=0, padx=10, pady=10)
 radio_build = ctk.CTkRadioButton(radio_frame, text="Build", variable=radio_var, value="build", command=on_radio_select)
-radio_build.grid(row=0, column=0, padx=10, pady=10)
+radio_build.grid(row=0, column=1, padx=10, pady=10)
 radio_build_tooltip = CTkToolTip(radio_build, delay=0.05, message=f'[Only CubeSuite+] cov-build 명령어 수행 시, build를 합니다.', justify="left")
 
 radio_clean_build = ctk.CTkRadioButton(radio_frame, text="Clean and Build", variable=radio_var, value="clean and build", command=on_radio_select)
-radio_clean_build.grid(row=0, column=1, padx=10, pady=10)
+radio_clean_build.grid(row=0, column=2, padx=10, pady=10)
 radio_clean_build_tooltip = CTkToolTip(radio_clean_build, delay=0.05, message=f'[Only CubeSuite+] cov-build 명령어 수행 시, clean 후 build를 합니다.', justify="left")
 
 radio_rebuild = ctk.CTkRadioButton(radio_frame, text="Rebuild", variable=radio_var, value="rebuild", command=on_radio_select)
-radio_rebuild.grid(row=0, column=2, padx=10, pady=10)
+radio_rebuild.grid(row=0, column=3, padx=10, pady=10)
 radio_rebuild_tooltip = CTkToolTip(radio_rebuild, delay=0.05, message=f'[Only CubeSuite+] cov-build 명령어 수행 시, rebuild를 합니다.', justify="left")
 
 cov_frame = ctk.CTkFrame(app)
-cov_frame.pack(side="top", pady=20, fill="x", padx=10)
+cov_frame.pack(side="top", pady=10, fill="x", padx=10)
 cov_frame.grid_columnconfigure(0, weight= 1)
 cov_frame.grid_columnconfigure(1, weight= 1)
 cov_frame.grid_columnconfigure(2, weight= 1)
 cov_frame.grid_columnconfigure(3, weight= 1)
+cov_frame.grid_columnconfigure(4, weight= 1)
 
 
 # cov-build 명령어 실행 버튼
-execute_button = ctk.CTkButton(cov_frame, text="cov-build", command=execute_command)
+execute_button = ctk.CTkButton(cov_frame, text="프로젝트 빌드", command=execute_command)
 # execute_button.pack(side="left", padx=10, pady=10)
 execute_button.grid(row=0, column=0, padx=10, pady=10)
-execute_button_tooltip = CTkToolTip(execute_button, delay=0.05, message=f'cov-build 명령어를 실행합니다.', justify="left")
+execute_button_tooltip = CTkToolTip(execute_button, delay=0.05, message=f'cov-build\n설정한 프로젝트를 빌드합니다.', justify="left")
 
 # cov-analyze 명령어 실행 버튼
-execute_analyze_button = ctk.CTkButton(cov_frame, text="cov-analyze", command=execute_analyze_command)
+execute_analyze_button = ctk.CTkButton(cov_frame, text="결과 분석", command=execute_analyze_command)
 # execute_analyze_button.pack(side="mid", padx=10, pady=10)
 execute_analyze_button.grid(row=0, column=1, padx=10, pady=10)
-execute_analyze_button_tooltip = CTkToolTip(execute_analyze_button, delay=0.05, message=f'설정한 save folder에 있는 결과를 분석합니다.', justify="left")
+execute_analyze_button_tooltip = CTkToolTip(execute_analyze_button, delay=0.05, \
+    message=f'cov-analyze\n설정한 결과 저장 폴더에 있는 빌드 결과를 분석합니다.', justify="left")
 
 # cov-commit-defects 명령어 실행 버튼
-execute_commit_button = ctk.CTkButton(cov_frame, text="cov-commit-defects", command=excute_commit_defects_command)
+execute_commit_button = ctk.CTkButton(cov_frame, text="서버 전송", command=excute_commit_defects_command)
 # execute_commit_button.pack(side="right", padx=10, pady=10)
 execute_commit_button.grid(row=0, column=2, padx=10, pady=10)
-execute_commit_button_tooltip = CTkToolTip(execute_commit_button, delay=0.05, message=f'cov-analyze를 통해서 분석한 결과를 서버로 전송합니다.', justify="left")
+execute_commit_button_tooltip = CTkToolTip(execute_commit_button, delay=0.05, \
+    message=f'cov-commit-defects\ncov-analyze를 통해서 분석한 결과를 서버로 전송합니다.', justify="left")
 
 # coverity commit --local 명령어 실행 버튼
-execute_commit_local_button = ctk.CTkButton(cov_frame, text="coverity commit --local", command=excute_coverity_commit_local)
+execute_commit_local_button = ctk.CTkButton(cov_frame, text="로컬 분석", command=excute_coverity_commit_local)
 execute_commit_local_button.grid(row=0, column=3, padx=10, pady=10)
-execute_commit_local_button_tooltip = CTkToolTip(execute_commit_local_button, delay=0.05, message=f'서버가 닫혀있을 때 사용하며, 로컬로 분석 결과를 저장합니다.', justify="left")
+execute_commit_local_button_tooltip = CTkToolTip(execute_commit_local_button, delay=0.05, \
+    message=f'coverity commit --local\n서버가 닫혀있을 때 사용하며, 로컬로 분석 결과를 저장합니다.\
+    \n결과를 저장할 폴더 지정이 필요합니다.', justify="left")
 
 output_text = ctk.CTkTextbox(app, height=15, activate_scrollbars=True)
 output_text.pack(fill=ctk.BOTH, expand=True, padx=10, pady=10)
 
-pjh_label = ctk.CTkLabel(app, text="원작자:박재환 ^~^ Copyright:박재환 (무단배포 금지)", fg_color="transparent", width=80, font=("consolas", 12))
+pjh_label = ctk.CTkLabel(app, text="원작자:박재환 ^~^ Copyright:박재환 (무단배포 금지)", fg_color="transparent", width=80, font=("Noto Sans KR", 12))
 pjh_label.pack(side="top",pady=10)
 
 app.mainloop()
