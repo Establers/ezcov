@@ -18,6 +18,9 @@ from CTkToolTip import *
 from config import *
 
 import json
+
+# drag and drop
+from tkinterdnd2 import DND_FILES, TkinterDnD
 """
 
 Todo
@@ -51,7 +54,15 @@ theme_json_dir = os.path.dirname(__file__)
 theme_json_path = os.path.join(theme_json_dir, "ezcov_theme.json")
 ctk.set_default_color_theme(theme_json_path)
 
-app = ctk.CTk()
+# drag and drop
+class Tk(ctk.CTk, TkinterDnD.DnDWrapper):
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.TkdndVersion = TkinterDnD._require(self)
+
+
+# app = ctk.CTk()
+app = Tk()
 app.title("EZ Coverity")
 app.geometry("680x750")
 
@@ -189,14 +200,32 @@ def init_radiobutton() :
         radio_clean_build.deselect()
         radio_rebuild.deselect()
     return 
+
+def is_valid_path(path:list):
+    not_valid_path_list = []
+    path_info = ["개발환경", "프로젝트 파일", "결과 저장 및 분석할 폴더"]
+    for p,pi in zip(path, path_info) :
+        if p == "" : 
+            not_valid_path_list.append(pi)        
+            
+    if not_valid_path_list == [] : return True
     
+    error_msg = '\n'.join(not_valid_path_list)
+    messagebox.showerror("경로 설정 필요",f'아래 파일 및 폴더에 대해 경로 설정이 필요합니다.\n{error_msg}')
+    return False
+
+
 def execute_command():
     command =""
     try:
         csplus_hew_path = file_path_vars["csplus_hew"].get()
         project_file_path = file_path_vars["project_file"].get()
         dir_path = file_path_vars["save_dir"].get()
-
+        
+        # 경로 지정 유무 확인하기
+        if not is_valid_path([csplus_hew_path, project_file_path, dir_path]) :
+            return
+        
         if "mtpj" in project_file_path[-4:] :
             command = f"cov-build --dir \"{dir_path}\" \"{csplus_hew_path}\" {command_arg} \"{project_file_path}\""
         elif "hws" in project_file_path[-4:] :
@@ -220,7 +249,6 @@ def execute_analyze_command():
 
     try:
         dir_path = file_path_vars["save_dir"].get()
-
         command = f"cov-analyze --dir \"{dir_path}\""
 
         # 명령어 실행
@@ -233,8 +261,17 @@ def execute_analyze_command():
     except subprocess.CalledProcessError as e:
         messagebox.showerror("Error", f"An error occurred: {e}")
 
-def excute_commit_defects_command() :
 
+def is_valid_to_commit():
+    # 서버가 살아있는지?
+    # id, pw --> check
+    # 결과 저장 폴더 지정 했는지
+    # stream
+    
+    pass
+
+
+def excute_commit_defects_command() :
     try :
         dir_path = file_path_vars["save_dir"].get()
         id = analyze_vars["id"].get()
@@ -281,6 +318,31 @@ def excute_coverity_commit_local() :
     except subprocess.CalledProcessError as e:
         messagebox.showerror("Error", f"An error occurred: {e}")
 
+def dnd_path_set_save_dir(event):
+    dnd_file_path = event.data
+    if dnd_file_path == "" or not os.path.isdir(dnd_file_path): 
+        messagebox.showerror("폴더를 드래그앤 드랍","파일이 아닌 폴더를 드래그앤 드랍해주세요.")
+        return
+        
+    file_path_vars["save_dir"].set(dnd_file_path)
+
+
+def dnd_path_set_project_file(event):
+    dnd_file_path = event.data
+    if not os.path.isfile(dnd_file_path) :
+        messagebox.showerror("유효하지 않은 파일","폴더는 불가합니다.\n프로젝트 파일[*.mtpj, *.hws]만 드래그앤 드랍이 가능합니다.")
+        return
+    
+    if "mtpj" in dnd_file_path[-4:] :
+        auto_set_devtool_path("CubeSuite+")
+        file_path_vars["project_file"].set(dnd_file_path)
+    elif "hws" in dnd_file_path[-4:] :
+        auto_set_devtool_path("HEW")
+        file_path_vars["project_file"].set(dnd_file_path)
+    else :
+        messagebox.showerror("유효하지 않은 파일","프로젝트 파일[*.mtpj, *.hws]만 드래그앤 드랍이 가능합니다.")
+        return
+    
 
 def tooltip_mapper(key) :
     if key == "csplus_hew" :
@@ -298,7 +360,7 @@ def tooltip_mapper(key) :
 # 버튼과 레이블 생성 함수
 def create_path_selector(parent, key, text, is_file=False, is_project=False):
     container_frame = ctk.CTkFrame(parent)
-    container_frame.pack(side="top", fill="x", padx=10, pady=10)
+    container_frame.pack(side="top", fill="x", padx=20, pady=10)
 
     button = ctk.CTkButton(
         master=container_frame, 
@@ -306,12 +368,20 @@ def create_path_selector(parent, key, text, is_file=False, is_project=False):
         command=lambda: find_path(key, is_file, is_project),
         width=180
     )
-    button.grid(row=0, column=0, padx=10, sticky="w")
+    button.grid(row=0, column=0, padx=(0,10), sticky="w")
     button_tooltip = CTkToolTip(button, delay=0.05, message=f'{tooltip_mapper(key)}', justify="left",  fg_color="transparent")
     
     entry_frame = ctk.CTkFrame(container_frame)  # This is now a child of the container_frame
-    entry_frame.grid(row=0, column=1, sticky="ew", padx=10)
+    entry_frame.grid(row=0, column=1, sticky="ew", padx=(10,0))
     container_frame.columnconfigure(1, weight=1)  # Allow the label frame to expand
+    
+    # entry_frame drag and drop
+    if key == "project_file" :
+        entry_frame.drop_target_register(DND_FILES)
+        entry_frame.dnd_bind('<<Drop>>', dnd_path_set_project_file)
+    elif key == "save_dir" :
+        entry_frame.drop_target_register(DND_FILES)
+        entry_frame.dnd_bind('<<Drop>>', dnd_path_set_save_dir)
     
     entry = ctk.CTkEntry(
         entry_frame, 
@@ -473,9 +543,9 @@ def refresh_server_status(app, url):
     status = check_server_status(url)
     # print(status, "url : " , url)
     if status :
-        server_status_label.configure(text="Connected", text_color="#001100", fg_color=("#55ee55", "#55ee55"))
+        server_status_label.configure(text="서버 ON", text_color="#001100", fg_color=("#55ee55", "#55ee55"))
     else :
-        server_status_label.configure(text="Disconnected", text_color="#001100", fg_color=("#ee5555", "#ee5555"))
+        server_status_label.configure(text="서버 OFF", text_color="#001100", fg_color=("#ee5555", "#ee5555"))
     app.after(10000, refresh_server_status, app,  analyze_vars["url"].get())
 
 
@@ -542,7 +612,7 @@ def destroy_radiobutton_frame():
     radio_frame.destroy()
 
 def about_menu_bar():
-    if messagebox.askyesno("ㅎㅎ", f'안녕하세요.\n\nCoverity CLI로 하기 귀찮으시죠...?..\n\n잘쓰세요!..\n\n고칠 거 있음 말씀해주세용.\n\nSAC사이클로직Projet 박재환 연구원 제작') :
+    if messagebox.askyesno("이스터에그", f'안녕하세요.\nCLI로 하기 귀찮으시죠...?\n잘쓰세요!..\n\n고칠 거 있으면 말씀해주세용.\nSAC사이클로직Projet 박재환 연구원 제작') :
         output_text.insert(ctk.END, "감사합니다...\n");
 
     else :
@@ -554,15 +624,16 @@ def help_menu_bar():
     else :
         output_text.insert(ctk.END, "앗...\n");
 
-def select_build_method(value):
-    global command_arg
-    selected_option = build_method_button_var.get()
-    if selected_option == "Build":
-        command_arg = "/bb"
-    elif selected_option == "Clean and Build":
-        command_arg = "/bcb"
-    elif selected_option == "Rebuild":  # rebuild
-        command_arg = "/br"
+
+# def select_build_method(value):
+#     global command_arg
+#     selected_option = build_method_button_var.get()
+#     if selected_option == "Build":
+#         command_arg = "/bb"
+#     elif selected_option == "Clean and Build":
+#         command_arg = "/bcb"
+#     elif selected_option == "Rebuild":  # rebuild
+#         command_arg = "/br"
 
 def disable_button(bt:ctk.CTkButton):
     bt.configure(state="disabled")
