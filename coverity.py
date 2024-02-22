@@ -650,9 +650,9 @@ def init_command_button():
 menubar = Menu(app)
 app.config(menu=menubar)
 menu = Menu(menubar, tearoff=0)
-menu.add_command(label="about", command=about_menu_bar)
 menu.add_command(label="Help", command=help_menu_bar)
-menubar.add_cascade(labe="About", menu=menu)
+menu.add_command(label="About", command=about_menu_bar)
+menubar.add_cascade(labe="Menu", menu=menu)
 
 # 설정 폰트
 button_font = ctk.CTkFont(family="Noto Sans KR", size=13)
