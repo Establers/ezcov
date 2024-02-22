@@ -612,15 +612,15 @@ def destroy_radiobutton_frame():
     radio_frame.destroy()
 
 def about_menu_bar():
-    if messagebox.askyesno("이스터에그", f'안녕하세요.\nCLI로 하기 귀찮으시죠...?\n잘쓰세요!..\n\n고칠 거 있으면 말씀해주세용.\nSAC사이클로직Projet 박재환 연구원 제작') :
-        output_text.insert(ctk.END, "감사합니다...\n");
+    if messagebox.askyesno("이스터에그", f'안녕하세요.\n잘쓰세요!..\n고칠 거 있으면 말씀해주세용.\n전문가는 CLI를 이용해주세요. 훨씬 더 많은 기능이 있습니다.\n\nSAC사이클로직Projet 박재환 연구원 개발👍') :
+        output_text.insert(ctk.END, "사용해주셔서 감사합니다...\n");
 
     else :
         output_text.insert(ctk.END, "앗...\n");
 
 def help_menu_bar():
-    if messagebox.askyesno("Help", f'개발환경 설정하시고...\n\ncov-configure 클릭해주시고..\n\nCoverity 설치된 폴더.. 프로젝트 파일..\n\n저장할 폴더..\n\n커밋할 스트림...\n\n설정해주세요\n\n더 보시려면 yes') :
-        messagebox.showinfo("Help2", f'이렇게 설정하고 Save Config로 저장하구\n\nLoad Config로 설정을 불러올 수 있어요...ㅎㅎ\n\nWeb은 그냥 웹사이트 여는 버튼이에요..\n\n더 궁금한거 있음 팀즈주세요..~')
+    if messagebox.askyesno("Help", f'1. 개발환경 설정\n\n2. cov-configure 클릭(최초)\n\n3. 프로젝트 파일 설정\n\n4. 결과 저장 폴더 선택\n\n5. 커밋할 스트림 새로고침 후 선택\n\n더 보시려면 yes') :
+        messagebox.showinfo("Help2", f'현재 설정 저장 : 현재 ID, PW, 경로를 저장합니다.\n설정 불러오기 : 저장한 설정을 불러옵니다.\nWeb : Coverity 사이트를 오픈합니다.\n더 궁금한거 있음 팀즈주세요..~')
     else :
         output_text.insert(ctk.END, "앗...\n");
 
