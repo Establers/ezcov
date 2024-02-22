@@ -484,6 +484,8 @@ def save_config_yaml() :
         
     with open(config_dir,'w') as yaml_file: 
         yaml.dump(config, yaml_file, default_flow_style=False)
+        
+    output_text.insert(ctk.END, f'> 설정 저장 완료 [ 경로 : {config_dir} ]\n\n');
 
 def load_saved_config_yaml():
     config_dir = filedialog.askopenfilename(filetypes=[("YAML files", "*.yaml"), ("All files", "*.*")])
@@ -503,7 +505,7 @@ def load_saved_config_yaml():
             if key in analyze_vars :
                 analyze_vars[key].set(value)
         
-        output_text.insert(ctk.END, "> Config Load 완료하였습니다...\n");
+        output_text.insert(ctk.END, "> Config Load 완료\n\n");
         init_radiobutton()
         login_check_func()
         set_stream_combobox_list()
@@ -543,9 +545,9 @@ def refresh_server_status(app, url):
     status = check_server_status(url)
     # print(status, "url : " , url)
     if status :
-        server_status_label.configure(text="서버 ON", text_color="#001100", fg_color=("#55ee55", "#55ee55"))
+        server_status_label.configure(text="서버 ●", text_color="#001100", fg_color=("#55ee55", "#55ee55"))
     else :
-        server_status_label.configure(text="서버 OFF", text_color="#001100", fg_color=("#ee5555", "#ee5555"))
+        server_status_label.configure(text="서버 X", text_color="#001100", fg_color=("#ee5555", "#ee5555"))
     app.after(10000, refresh_server_status, app,  analyze_vars["url"].get())
 
 
@@ -693,7 +695,7 @@ get_open_url_button.grid(row=0, column=6, padx=5, sticky="e")
 get_open_url_button_tooltip = CTkToolTip(get_open_url_button, delay=0.05, message=f'Coverity 사이트를 엽니다.', justify="left",  fg_color="transparent")
 
 # 서버 상태 확인
-server_status_label = ctk.CTkLabel(left_frame, text="Checking...", fg_color=("white", "gray"), width=80)
+server_status_label = ctk.CTkLabel(left_frame, text="Checking...", width=40)
 server_status_label.grid(row=0, column=7, padx=5, sticky="e")
 
 
