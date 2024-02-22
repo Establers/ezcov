@@ -19,8 +19,8 @@
       "hover_color": ["#1E4EF5", "#0155B0"],
       "border_color": ["#1E4EF5", "#0155B0"],
       "text_color": ["#ffffff"],
-      "text_color_disabled": ["#CCCCCC"]
-
+      "text_color_disabled": ["#CCCCe0"]
+      
     },
     "CTkLabel": {
       "corner_radius": 0,
