@@ -344,7 +344,7 @@ def create_path_selector(parent, key, text, is_file=False, is_project=False):
         master=container_frame, 
         text=text, 
         command=lambda: find_path(key, is_file, is_project),
-        width=180
+        width=180, font=button_font
     )
     button.grid(row=0, column=0, padx=(0,10), sticky="w")
     button_tooltip = CTkToolTip(button, delay=0.05, message=f'{tooltip_mapper(key)}', justify="left",  fg_color="transparent")
@@ -523,9 +523,9 @@ def refresh_server_status(app, url):
     status = check_server_status(url)
     # print(status, "url : " , url)
     if status :
-        server_status_label.configure(text="서버 ●", text_color="#001100", fg_color=("#55ee55", "#55ee55"), width=30)
+        server_status_label.configure(text="서버", text_color="#001100", fg_color=("#55ee55", "#55ee55"), width=30)
     else :
-        server_status_label.configure(text="서버 ▲", text_color="#001100", fg_color=("#ee5555", "#ee5555"), width=30)
+        server_status_label.configure(text="서버", text_color="#001100", fg_color=("#ee5555", "#ee5555"), width=30)
     app.after(10000, refresh_server_status, app,  analyze_vars["url"].get())
 
 
@@ -684,14 +684,14 @@ input_entry_id = ctk.CTkEntry(left_frame, textvariable=analyze_vars["id"], place
 input_entry_id.grid(row=0, column=1, padx=10,pady=5)
 
 # PW
-label_pw = ctk.CTkLabel(left_frame, text="PW", fg_color="transparent", width=30)
-label_pw.grid(row=0, column=2, padx=(0, 5), sticky="w", pady=5)
+label_pw = ctk.CTkLabel(left_frame, text="PW", fg_color="transparent", width=20)
+label_pw.grid(row=0, column=2, padx=0 , sticky="w", pady=5)
 input_entry_password = ctk.CTkEntry(left_frame, textvariable=analyze_vars["password"], placeholder_text="password")
 input_entry_password.grid(row=0, column=3, padx=(0, 10), pady=5)
 # input_entry_password.bind("<KeyRelease>", login_check_func) 
 
 # Login Check button
-login_check_button = ctk.CTkButton(left_frame, text="Check", command=login_check_func, width=50)
+login_check_button = ctk.CTkButton(left_frame, text="Check", command=login_check_func, width=50, font=button_font)
 login_check_button.grid(row=0, column=4, pady=5)  
 login_check_button_tooltip = CTkToolTip(login_check_button, delay=0.05, message=f'ID와 Password가 유효한지 검사합니다.', justify="left",  fg_color="transparent")
 
@@ -699,7 +699,7 @@ login_check_label = ctk.CTkLabel(left_frame, text="◀", fg_color="transparent",
 login_check_label.grid(row=0, column=5, pady=5, padx=5)  
 
 # Coverity Open
-get_open_url_button = CustomButton(left_frame, text="Web", command=open_website, width=50)
+get_open_url_button = ctk.CTkButton(left_frame, text="Web", command=open_website, width=50, font=button_font)
 get_open_url_button.grid(row=0, column=6, padx=5, sticky="e")
 get_open_url_button_tooltip = CTkToolTip(get_open_url_button, delay=0.05, message=f'Coverity 사이트를 엽니다.', justify="left",  fg_color="transparent")
 
@@ -708,7 +708,7 @@ server_status_label = ctk.CTkLabel(left_frame, text="Checking...", width=40)
 server_status_label.grid(row=0, column=7, padx=5, sticky="e")
 
 # help button
-help_button = ctk.CTkButton(left_frame, text="？", width=10, command=help_button)
+help_button = ctk.CTkButton(left_frame, text="？", width=5, command=help_button, font=button_font)
 help_button.grid(row=0, column=8, padx=(5,0), sticky="e")
 
 # Right Frame
@@ -719,23 +719,23 @@ for i in range(5) :
     right_frame.grid_columnconfigure(i, weight=1)
 
 # 현 설정 값 yaml로 저장
-save_config_button = ctk.CTkButton(right_frame, text="현재 설정 저장", command=save_config_yaml)
+save_config_button = ctk.CTkButton(right_frame, text="현재 설정 저장", command=save_config_yaml, font=button_font)
 save_config_button.grid(row=0, column=0, padx=(0,5), pady=5)
 save_config_button_tooltip = CTkToolTip(save_config_button, delay=0.05, message=f'지금 설정되어있는 ID,PW, 폴더 및 파일경로를 저장합니다.', justify="left",  fg_color="transparent")
 
 # 저장한 yaml 파일 불러오기
-load_config_button = ctk.CTkButton(right_frame, text="설정 불러오기", command=load_saved_config_yaml)
+load_config_button = ctk.CTkButton(right_frame, text="설정 불러오기", command=load_saved_config_yaml, font=button_font)
 load_config_button.grid(row=0, column=1, padx=5, pady=5)
 
 # Option Menu로 개발환경 구분하기
 auto_find_button = ctk.CTkOptionMenu(right_frame, values=["CubeSuite+", "HEW"],
                                     command=auto_set_devtool_path,
-                                    variable=optionmenu_devenv)
+                                    variable=optionmenu_devenv, font=button_font)
 auto_find_button.grid(row=0, column=2, padx=5, pady=5)
 auto_find_button_tooltip = CTkToolTip(auto_find_button, delay=0.05, message=f'Coverity 검사를 진행할 프로젝트의 개발환경을 선택해주세요.', justify="left",  fg_color="transparent")
 
 # Create and place the command execution button in the buttons frame
-execute_configure_button = ctk.CTkButton(right_frame, text="RX, R32C 컴파일러 세팅", command=execute_configure_command)
+execute_configure_button = ctk.CTkButton(right_frame, text="RX, R32C 컴파일러 세팅", command=execute_configure_command, font=button_font)
 execute_configure_button.grid(row=0, column=3, padx=(5,0), pady=5, sticky="e")
 execute_configure_button_tooltip = CTkToolTip(execute_configure_button, delay=0.05, message=f'RX 시리즈와 r32c 시리즈 컴파일러 Coverity 설정을 합니다.', justify="left",  fg_color="transparent")
 
@@ -757,7 +757,7 @@ stream_frame = ctk.CTkFrame(app)
 stream_frame.pack(side="top", fill="x", padx=20, pady=10)
 
 # stream 가져오기 버튼
-get_stream_list_button = ctk.CTkButton(stream_frame, text="Stream 선택 (새로고침)", command=set_stream_combobox_list, width=180)
+get_stream_list_button = ctk.CTkButton(stream_frame, text="Stream 선택 (새로고침)", command=set_stream_combobox_list, width=180, font=button_font)
 get_stream_list_button.grid(row=0, column=0, padx=(0, 10), sticky="w")
 stream_list_tooltip = CTkToolTip(get_stream_list_button, delay=0.05, message=f'스트림 항목을 다시 불러옵니다.', justify="left",  fg_color="transparent")
 
@@ -825,27 +825,27 @@ cov_frame.grid_columnconfigure(4, weight= 1)
 
 
 # cov-build 명령어 실행 버튼
-execute_button = ctk.CTkButton(cov_frame, text="프로젝트 빌드", command=execute_command)
+execute_button = ctk.CTkButton(cov_frame, text="프로젝트 빌드", command=execute_command, font=button_font)
 # execute_button.pack(side="left", padx=10, pady=10)
 execute_button.grid(row=0, column=0, padx=10, pady=10)
 execute_button_tooltip = CTkToolTip(execute_button, delay=0.05, message=f'cov-build\n설정한 프로젝트를 빌드합니다.', justify="left",  fg_color="transparent")
 
 # cov-analyze 명령어 실행 버튼
-execute_analyze_button = ctk.CTkButton(cov_frame, text="결과 분석", command=execute_analyze_command)
+execute_analyze_button = ctk.CTkButton(cov_frame, text="결과 분석", command=execute_analyze_command, font=button_font)
 # execute_analyze_button.pack(side="mid", padx=10, pady=10)
 execute_analyze_button.grid(row=0, column=1, padx=10, pady=10)
 execute_analyze_button_tooltip = CTkToolTip(execute_analyze_button, delay=0.05, \
     message=f'cov-analyze\n설정한 결과 저장 폴더에 있는 빌드 결과를 분석합니다.', justify="left",  fg_color="transparent")
 
 # cov-commit-defects 명령어 실행 버튼
-execute_commit_button = ctk.CTkButton(cov_frame, text="서버 전송", command=excute_commit_defects_command)
+execute_commit_button = ctk.CTkButton(cov_frame, text="서버 전송", command=excute_commit_defects_command, font=button_font)
 # execute_commit_button.pack(side="right", padx=10, pady=10)
 execute_commit_button.grid(row=0, column=2, padx=10, pady=10)
 execute_commit_button_tooltip = CTkToolTip(execute_commit_button, delay=0.05, \
     message=f'cov-commit-defects\ncov-analyze를 통해서 분석한 결과를 서버로 전송합니다.', justify="left",  fg_color="transparent")
 
 # coverity commit --local 명령어 실행 버튼
-execute_commit_local_button = ctk.CTkButton(cov_frame, text="로컬 분석", command=excute_coverity_commit_local)
+execute_commit_local_button = ctk.CTkButton(cov_frame, text="로컬 분석", command=excute_coverity_commit_local, font=button_font)
 execute_commit_local_button.grid(row=0, column=3, padx=10, pady=10)
 execute_commit_local_button_tooltip = CTkToolTip(execute_commit_local_button, delay=0.05, \
     message=f'coverity commit --local\n서버가 닫혀있을 때 사용하며, 로컬로 분석 결과를 저장합니다.\
@@ -853,7 +853,7 @@ execute_commit_local_button_tooltip = CTkToolTip(execute_commit_local_button, de
 
 init_command_button()
 
-output_text = ctk.CTkTextbox(app, height=15, activate_scrollbars=True)
+output_text = ctk.CTkTextbox(app, activate_scrollbars=True)
 output_text.pack(fill=ctk.BOTH, expand=True, padx=20, pady=10)
 
 last_frame = ctk.CTkFrame(app)
@@ -867,7 +867,7 @@ def light_dark_mode() :
     elif ctk.get_appearance_mode() == "Dark" :
         ctk.set_appearance_mode("Light")
 
-light_dark_mode_btn = ctk.CTkButton(last_frame, text="Mode", command=light_dark_mode,width=40)
+light_dark_mode_btn = ctk.CTkButton(last_frame, text="Mode", command=light_dark_mode,width=40, font=button_font)
 light_dark_mode_btn.pack(side="right", anchor="e")
 
 app.resizable(width=False, height=False)
