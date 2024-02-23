@@ -1,3 +1,4 @@
+import sys
 import customtkinter as ctk
 from tkinter import filedialog, messagebox, scrolledtext, Tk, Canvas, Menu
 import subprocess
@@ -21,34 +22,10 @@ import json
 
 # drag and drop
 from tkinterdnd2 import DND_FILES, TkinterDnD
-"""
 
-Todo
-### -- 1. 웹서버 오픈하는거 열기
-###2. cov-... 버튼 성공 유무 판단해서 다음꺼 실행할 수 있게
-    2.1. cov-... 명령어 만족못할 경우 실패 메시지 및 처리
-    2.2 반쪽 짜리 기능은 완성... 
-3. GUI 좀 더 버튼처럼 고치기... 맞추기 크기도 맞추기.
-### 4. 스크롤바 GUI 고치기 
-[보류] 5. commit 끝났을 때 페이지 열까? 버튼 만들기 
-6. get으로 request .-> stream 목록 만들기 (확인필요)
-    -> basic auth 사용
-    --> config 에서 가져오는 걸로 id pw 설정하기
-7. hew, cs+ 자동인식. (완)
-    cs : Cubesuite+.exe (완)
-        -> mtpj 파일 그대로 (완)
-    hew : hew2.exe (완)
-        -> mtpj 파일이 아니라 hws 파일 (완)
-        -> cov-build 명령어가 조금 다름 (완)
-8. 이번에 설정한 파일들을 저장하기 
-    8.1 파일명은 {YYMMDD_HHMM}_{프로젝트이름} --> 수동 파일명으로 구현
-    8.1 config 파일 골라서 불러오기 (모든 것들 다 불러옴) (완)
-    
-9. GUI 좀 뜯어고치기
-10. 
-"""
 
-ctk.set_appearance_mode("light")
+# ctk.set_appearance_mode("light")
+ctk.set_appearance_mode("dark")
 
 theme_json_dir = os.path.dirname(__file__)
 theme_json_path = os.path.join(theme_json_dir, "ezcov_theme.json")
@@ -60,11 +37,10 @@ class Tk(ctk.CTk, TkinterDnD.DnDWrapper):
         super().__init__(*args, **kwargs)
         self.TkdndVersion = TkinterDnD._require(self)
 
-
 # app = ctk.CTk()
 app = Tk()
 app.title("EZ Coverity")
-app.geometry("680x750")
+app.geometry("655x720")
 
 ### Globla Variable ###
 excute_step = 0
@@ -134,6 +110,8 @@ def find_path(key, is_file=False, is_project=False):
         path = filedialog.askdirectory()
     if path:
         file_path_vars[key].set(path)
+
+    return path
 
 def check_process(process, callback, step):
     print("check_process", process)
@@ -536,7 +514,7 @@ def login_check_func():
         return True
 
     else :
-        login_check_label.configure(text="X", text_color="#ee5555", fg_color="transparent")
+        login_check_label.configure(text="▲", text_color="#ee5555", fg_color="transparent")
         print("can not get response")
         return False
 
@@ -545,9 +523,9 @@ def refresh_server_status(app, url):
     status = check_server_status(url)
     # print(status, "url : " , url)
     if status :
-        server_status_label.configure(text="서버 ●", text_color="#001100", fg_color=("#55ee55", "#55ee55"))
+        server_status_label.configure(text="서버 ●", text_color="#001100", fg_color=("#55ee55", "#55ee55"), width=30)
     else :
-        server_status_label.configure(text="서버 X", text_color="#001100", fg_color=("#ee5555", "#ee5555"))
+        server_status_label.configure(text="서버 ▲", text_color="#001100", fg_color=("#ee5555", "#ee5555"), width=30)
     app.after(10000, refresh_server_status, app,  analyze_vars["url"].get())
 
 
@@ -614,29 +592,12 @@ def destroy_radiobutton_frame():
     radio_frame.destroy()
 
 def about_menu_bar():
-    if messagebox.askyesno("이스터에그", f'안녕하세요.\n잘쓰세요!..\n고칠 거 있으면 말씀해주세용.\n전문가는 CLI를 이용해주세요. 훨씬 더 많은 기능이 있습니다.\n\nSAC사이클로직Projet 박재환 연구원 개발👍') :
-        output_text.insert(ctk.END, "사용해주셔서 감사합니다...\n");
-
-    else :
-        output_text.insert(ctk.END, "앗...\n");
+    messagebox.showinfo("Info", f'Coverity Simple GUI Tool\n\nSAC사이클로직Projet 박재환 연구원 개발')        
 
 def help_menu_bar():
     if messagebox.askyesno("Help", f'1. 개발환경 설정\n\n2. cov-configure 클릭(최초)\n\n3. 프로젝트 파일 설정\n\n4. 결과 저장 폴더 선택\n\n5. 커밋할 스트림 새로고침 후 선택\n\n더 보시려면 yes') :
-        messagebox.showinfo("Help2", f'현재 설정 저장 : 현재 ID, PW, 경로를 저장합니다.\n설정 불러오기 : 저장한 설정을 불러옵니다.\nWeb : Coverity 사이트를 오픈합니다.\n더 궁금한거 있음 팀즈주세요..~')
-    else :
-        output_text.insert(ctk.END, "앗...\n");
-
-
-# def select_build_method(value):
-#     global command_arg
-#     selected_option = build_method_button_var.get()
-#     if selected_option == "Build":
-#         command_arg = "/bb"
-#     elif selected_option == "Clean and Build":
-#         command_arg = "/bcb"
-#     elif selected_option == "Rebuild":  # rebuild
-#         command_arg = "/br"
-
+        messagebox.showinfo("Help2", f'현재 설정 저장 : 현재 ID, PW, 경로를 저장합니다.\n설정 불러오기 : 저장한 설정을 불러옵니다.\nWeb : Coverity 사이트를 오픈합니다.')
+    
 def disable_button(bt:ctk.CTkButton):
     bt.configure(state="disabled")
 
@@ -649,15 +610,63 @@ def init_command_button():
     disable_button(execute_commit_button)
     disable_button(execute_commit_local_button)
 
-menubar = Menu(app)
-app.config(menu=menubar)
-menu = Menu(menubar, tearoff=0)
-menu.add_command(label="Help", command=help_menu_bar)
-menu.add_command(label="About", command=about_menu_bar)
-menubar.add_cascade(labe="Menu", menu=menu)
+def restart_program():
+    py = sys.executable
+    os.execl(py, py, *sys.argv)
+
+def system_path_check():
+    """
+    coverity \\bin path가 등록되어 있는지 체크함.
+    """
+    if os.environ.get("Path") == None : 
+            messagebox.showerror("시스템 환경 변수 에러","Path 환경 변수 없음!")
+            return False
+
+    path_list = os.environ['Path']
+    path_list = path_list.split(";")
+    for path in path_list : 
+        print(path)
+        if "cov-analysis" in path and "bin" in path[-5:] :
+            # cov-analyze가 있긴 있는지 보는 것
+            # bin이 제대로 되어 있다면
+            return True
+    
+    return False
+
+def open_system_Env_var():
+    """
+    coverity\bin 경로를 Path 에 추가하기
+    """
+    if messagebox.askyesno("Coverity 설치 폴더 시스템 환경 변수 등록", "Coverity 설치 폴더 시스템 환경 변수에 등록해야합니다.\n\n \
+                            \nCoverity 파일 압축 해제한 곳에서 \n...\\cov-analysis-win64-2023.12.0\\bin 폴더를 선택해주세요.\n\n창을 여시겠습니까?") :
+        os.system('rundll32.exe sysdm.cpl,EditEnvironmentVariables')
+        messagebox.showinfo("재시작 필요","프로그램을 종료합니다.\n시스템 환경 변수 적용을 위해 프로그램을 다시 시작해주세요")
+        sys.exit()
+    else :
+        return
+    
+        
+def set_system_path() :
+    if not system_path_check() : 
+        open_system_Env_var()
+
+def help_button():
+    help_menu_bar()
+    pass
+
+
+
+set_system_path()
+
+# menubar = Menu(app)
+# app.config(menu=menubar)
+# menu = Menu(menubar, tearoff=0)
+# menu.add_command(label="Help", command=help_menu_bar)
+# menu.add_command(label="About", command=about_menu_bar)
+# menubar.add_cascade(labe="Menu", menu=menu)
 
 # 설정 폰트
-button_font = ctk.CTkFont(family="Noto Sans KR", size=13)
+button_font = ctk.CTkFont(family="Noto Sans KR", size=13, weight="bold")
 
 # Frame for buttons
 buttons_frame = ctk.CTkFrame(app)
@@ -670,27 +679,27 @@ left_frame.grid(row=0, column=0, sticky="ew")
 
 # ID
 label_id = ctk.CTkLabel(left_frame, text="ID", fg_color="transparent", width=20)
-label_id.grid(row=0, column=0, padx=0, sticky="w",pady=10)
+label_id.grid(row=0, column=0, padx=0, sticky="w",pady=5)
 input_entry_id = ctk.CTkEntry(left_frame, textvariable=analyze_vars["id"], placeholder_text="id")
-input_entry_id.grid(row=0, column=1, padx=10,pady=10)
+input_entry_id.grid(row=0, column=1, padx=10,pady=5)
 
 # PW
 label_pw = ctk.CTkLabel(left_frame, text="PW", fg_color="transparent", width=30)
-label_pw.grid(row=0, column=2, padx=(0, 5), sticky="w", pady=10)
+label_pw.grid(row=0, column=2, padx=(0, 5), sticky="w", pady=5)
 input_entry_password = ctk.CTkEntry(left_frame, textvariable=analyze_vars["password"], placeholder_text="password")
-input_entry_password.grid(row=0, column=3, padx=(0, 10), pady=10)
+input_entry_password.grid(row=0, column=3, padx=(0, 10), pady=5)
 # input_entry_password.bind("<KeyRelease>", login_check_func) 
 
 # Login Check button
-login_check_button = ctk.CTkButton(left_frame, text="ID PW Check", command=login_check_func, width=50)
-login_check_button.grid(row=0, column=4, pady=10)  
+login_check_button = ctk.CTkButton(left_frame, text="Check", command=login_check_func, width=50)
+login_check_button.grid(row=0, column=4, pady=5)  
 login_check_button_tooltip = CTkToolTip(login_check_button, delay=0.05, message=f'ID와 Password가 유효한지 검사합니다.', justify="left",  fg_color="transparent")
 
-login_check_label = ctk.CTkLabel(left_frame, text="◀", text_color="#1A1E27", fg_color="transparent", width=15)
-login_check_label.grid(row=0, column=5, pady=10, padx=5)  
+login_check_label = ctk.CTkLabel(left_frame, text="◀", fg_color="transparent", width=15)
+login_check_label.grid(row=0, column=5, pady=5, padx=5)  
 
 # Coverity Open
-get_open_url_button = ctk.CTkButton(left_frame, text="Web", command=open_website, width=50)
+get_open_url_button = CustomButton(left_frame, text="Web", command=open_website, width=50)
 get_open_url_button.grid(row=0, column=6, padx=5, sticky="e")
 get_open_url_button_tooltip = CTkToolTip(get_open_url_button, delay=0.05, message=f'Coverity 사이트를 엽니다.', justify="left",  fg_color="transparent")
 
@@ -698,6 +707,9 @@ get_open_url_button_tooltip = CTkToolTip(get_open_url_button, delay=0.05, messag
 server_status_label = ctk.CTkLabel(left_frame, text="Checking...", width=40)
 server_status_label.grid(row=0, column=7, padx=5, sticky="e")
 
+# help button
+help_button = ctk.CTkButton(left_frame, text="？", width=10, command=help_button)
+help_button.grid(row=0, column=8, padx=(5,0), sticky="e")
 
 # Right Frame
 right_frame = ctk.CTkFrame(buttons_frame)
@@ -708,23 +720,23 @@ for i in range(5) :
 
 # 현 설정 값 yaml로 저장
 save_config_button = ctk.CTkButton(right_frame, text="현재 설정 저장", command=save_config_yaml)
-save_config_button.grid(row=0, column=0, padx=(0,5), pady=10)
+save_config_button.grid(row=0, column=0, padx=(0,5), pady=5)
 save_config_button_tooltip = CTkToolTip(save_config_button, delay=0.05, message=f'지금 설정되어있는 ID,PW, 폴더 및 파일경로를 저장합니다.', justify="left",  fg_color="transparent")
 
 # 저장한 yaml 파일 불러오기
 load_config_button = ctk.CTkButton(right_frame, text="설정 불러오기", command=load_saved_config_yaml)
-load_config_button.grid(row=0, column=1, padx=5, pady=10)
+load_config_button.grid(row=0, column=1, padx=5, pady=5)
 
 # Option Menu로 개발환경 구분하기
 auto_find_button = ctk.CTkOptionMenu(right_frame, values=["CubeSuite+", "HEW"],
                                     command=auto_set_devtool_path,
                                     variable=optionmenu_devenv)
-auto_find_button.grid(row=0, column=2, padx=5, pady=10)
+auto_find_button.grid(row=0, column=2, padx=5, pady=5)
 auto_find_button_tooltip = CTkToolTip(auto_find_button, delay=0.05, message=f'Coverity 검사를 진행할 프로젝트의 개발환경을 선택해주세요.', justify="left",  fg_color="transparent")
 
 # Create and place the command execution button in the buttons frame
 execute_configure_button = ctk.CTkButton(right_frame, text="RX, R32C 컴파일러 세팅", command=execute_configure_command)
-execute_configure_button.grid(row=0, column=3, padx=(5,0), pady=10, sticky="e")
+execute_configure_button.grid(row=0, column=3, padx=(5,0), pady=5, sticky="e")
 execute_configure_button_tooltip = CTkToolTip(execute_configure_button, delay=0.05, message=f'RX 시리즈와 r32c 시리즈 컴파일러 Coverity 설정을 합니다.', justify="left",  fg_color="transparent")
 
 ### init : 기본 설정 
@@ -742,21 +754,21 @@ create_path_selector(app, "save_dir", "결과 저장 및 분석할 폴더")
 
 # stream 프레임
 stream_frame = ctk.CTkFrame(app)
-stream_frame.pack(side="top", fill="x", padx=10, pady=10)
+stream_frame.pack(side="top", fill="x", padx=20, pady=10)
 
 # stream 가져오기 버튼
 get_stream_list_button = ctk.CTkButton(stream_frame, text="Stream 선택 (새로고침)", command=set_stream_combobox_list, width=180)
-get_stream_list_button.grid(row=0, column=0, padx=10, sticky="w")
+get_stream_list_button.grid(row=0, column=0, padx=(0, 10), sticky="w")
 stream_list_tooltip = CTkToolTip(get_stream_list_button, delay=0.05, message=f'스트림 항목을 다시 불러옵니다.', justify="left",  fg_color="transparent")
 
-stream_label_frame = ctk.CTkFrame(stream_frame)  # This is now a child of the container_frame
-stream_label_frame.grid(row=0, column=1, sticky="ew", padx=10)
+stream_label_frame = ctk.CTkFrame(stream_frame)  
+stream_label_frame.grid(row=0, column=1, sticky="ew", padx=(10, 0))
 stream_frame.columnconfigure(1, weight=1)
 
 # stream 콤보박스
 stream_combo_box = ctk.CTkComboBox(stream_frame, values=['please Refresh'], command=set_stream_list,
                                     variable=analyze_vars["stream"])
-stream_combo_box.grid(row=0, column=1, sticky="ew", padx=10)
+stream_combo_box.grid(row=0, column=1, sticky="ew", padx=(10,0))
 
 # stream Label
 label = ctk.CTkLabel(stream_label_frame, textvariable=analyze_vars["stream"], fg_color="transparent")
@@ -804,7 +816,7 @@ radio_rebuild_tooltip = CTkToolTip(radio_rebuild, delay=0.05, message=f'[Only Cu
 # build_method_frame_tooltip = CTkToolTip(build_method_frame, delay=0.05, message=f'[Only CubeSuite+] 빌드 명령어 수행 시, 선택한 방법으로 빌드합니다.\nBuild 선택 시, Coverity에서 인식이 안될 수 있습니다.', justify="left",  fg_color="transparent")
 
 cov_frame = ctk.CTkFrame(app)
-cov_frame.pack(side="top", pady=10, fill="x", padx=10)
+cov_frame.pack(side="top", pady=10, fill="x", padx=20)
 cov_frame.grid_columnconfigure(0, weight= 1)
 cov_frame.grid_columnconfigure(1, weight= 1)
 cov_frame.grid_columnconfigure(2, weight= 1)
@@ -844,8 +856,19 @@ init_command_button()
 output_text = ctk.CTkTextbox(app, height=15, activate_scrollbars=True)
 output_text.pack(fill=ctk.BOTH, expand=True, padx=20, pady=10)
 
-pjh_label = ctk.CTkLabel(app, text="원작자:박재환 ^~^ Copyright:박재환 (무단배포 금지)", fg_color="transparent", width=80, font=("Noto Sans KR", 12))
-pjh_label.pack(side="top",pady=10)
+last_frame = ctk.CTkFrame(app)
+last_frame.pack(side="bottom",expand="yes")
+pjh_label = ctk.CTkLabel(last_frame, text="개발자 : SAC사이클로직Project 박재환 연구원", fg_color="transparent", width=80, font=("Noto Sans KR", 10))
+pjh_label.pack(side="left")
 
-app.resizable(width=True, height=False)
+def light_dark_mode() :
+    if ctk.get_appearance_mode() == "Light" :
+        ctk.set_appearance_mode("Dark")
+    elif ctk.get_appearance_mode() == "Dark" :
+        ctk.set_appearance_mode("Light")
+
+light_dark_mode_btn = ctk.CTkButton(last_frame, text="Mode", command=light_dark_mode,width=40)
+light_dark_mode_btn.pack(side="right", anchor="e")
+
+app.resizable(width=False, height=False)
 app.mainloop()
