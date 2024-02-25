@@ -419,6 +419,7 @@ def auto_set_devtool_path(choice) :
             messagebox.showerror("Path Not Found",\
                 "C:\\Program Files (x86)\\Renesas Electronics\\CS+\\CC\\CubeSuite+.exe\
                     \n찾기에 실패하였습니다. \n직접 폴더 경로를 지정해주세요.")
+            csplus_hew_directory_modal()
         radio_button_csplus()
 
     elif choice == "HEW" :
@@ -431,6 +432,7 @@ def auto_set_devtool_path(choice) :
             messagebox.showerror("Path Not Found", \
                     "C:\\Program Files (x86)\\Renesas\\Hew\\hew2.exe\
                     \n찾기에 실패하였습니다. \n직접 폴더 경로를 지정해주세요.")
+            csplus_hew_directory_modal()
         radio_button_hew()
     
         
@@ -527,6 +529,12 @@ def login_check_func():
         print("can not get response")
         return False
 
+def set_server_ip(event):
+    """엔트리에 적은 주소를 서버 IP 주소로 설정합니다.
+    """
+    
+    analyze_vars["url"].set()
+    pass
 
 def refresh_server_status(app, url):
     status = check_server_status(url)
@@ -663,10 +671,73 @@ def help_button():
     help_menu_bar()
     pass
 
+# Login, Server Window
+def ServerSettingWindow():
+    
+    top_window = ctk.CTkToplevel(app)
+    top_window.geometry("280x235")
+    top_window.grab_set()
+    top_window.title("로그인 및 서버 세팅")
+    top_window.resizable(False, False)
+    
+    # Left Frame 
+    left_frame = ctk.CTkFrame(top_window)
+    left_frame.grid(row=0, column=0, sticky="ew",padx=20, pady=20)
 
+    for i in range(4) :
+        left_frame.grid_columnconfigure(i, weight=1)
+        
+    label_id = ctk.CTkLabel(left_frame, text="ID", fg_color="transparent", width=20)
+    label_id.grid(row=0, column=0, padx=0,pady=5)
+    input_entry_id = ctk.CTkEntry(left_frame, textvariable=analyze_vars["id"], placeholder_text="id")
+    input_entry_id.grid(row=0, column=1, padx=10,pady=5)
 
+    # PW
+    label_pw = ctk.CTkLabel(left_frame, text="PW", fg_color="transparent", width=20)
+    label_pw.grid(row=1, column=0, padx=0 , pady=5)
+    input_entry_password = ctk.CTkEntry(left_frame, textvariable=analyze_vars["password"], placeholder_text="password")
+    input_entry_password.grid(row=1, column=1, padx=10, pady=5)
+    
+    # server
+    label_pw = ctk.CTkLabel(left_frame, text="IP", fg_color="transparent", width=20)
+    label_pw.grid(row=2, column=0, padx=0 , pady=5)
+    input_entry_password = ctk.CTkEntry(left_frame, textvariable=analyze_vars["url"], placeholder_text="server")
+    input_entry_password.grid(row=2, column=1, padx=10, pady=5)
+    
+    # submit
+    # Login Check button
+    login_check_button = ctk.CTkButton(left_frame, text="Check", command=login_check_func, width=50, font=button_font)
+    login_check_button.grid(row=3, column=0, pady=5, columnspan=3, sticky="ew",padx=5)  
+    login_check_button_tooltip = CustomTooltip(login_check_button, delay=0.05, message=f'ID와 Password가 유효한지 검사합니다.', justify="left",  fg_color="transparent")
+
+    login_check_label = ctk.CTkLabel(left_frame, text="◀", fg_color="transparent", width=15)
+    login_check_label.grid(row=3, column=4, pady=5, padx=5)  
+    
+    # Coverity Open
+    get_open_url_button = ctk.CTkButton(left_frame, text="Open Web", command=open_website, width=50, font=button_font)
+    get_open_url_button.grid(row=4, column=0, padx=5,pady=5, columnspan=3,sticky="ew")
+    get_open_url_button_tooltip = CustomTooltip(get_open_url_button, delay=0.05, message=f'Coverity 사이트를 엽니다.', justify="left",  fg_color="transparent")
+
+    # 서버 상태 확인
+    server_status_label = ctk.CTkLabel(left_frame, text="..", width=40)
+    server_status_label.grid(row=4, column=4, padx=5, pady=5)
+    
+    
+def csplus_hew_directory_modal():
+    dev_window = ctk.CTkToplevel(app)
+    dev_window.geometry("500x100")
+    dev_window.grab_set()
+    dev_window.resizable(False, False)
+    dev_window.title("개발환경 경로 설정")
+    label_dev = ctk.CTkLabel(dev_window, text="아래 버튼을 눌러 개발환경 경로를 설정해주세요.", fg_color="transparent", width=20)
+    label_dev.pack(pady=10,padx=(10, 0))
+    create_path_selector(dev_window, "csplus_hew", "개발환경", is_file=True)
+    
 set_system_path()
 
+toplevel_window = None
+
+        
 # menubar = Menu(app)
 # app.config(menu=menubar)
 # menu = Menu(menubar, tearoff=0)
@@ -677,6 +748,8 @@ set_system_path()
 # 설정 폰트
 button_font = ctk.CTkFont(size=12, weight="bold")
 
+
+
 # Frame for buttons
 buttons_frame = ctk.CTkFrame(app)
 buttons_frame.pack(side="top", fill="x", padx=20, pady=10)
@@ -685,49 +758,52 @@ buttons_frame.grid_columnconfigure(1, weight=1)
 
     
 # Left Frame 
-left_frame = ctk.CTkFrame(buttons_frame)
+left_frame = ctk.CTkFrame(buttons_frame, fg_color="transparent")
 left_frame.grid(row=0, column=0, sticky="ew")
 
-for i in range(9) :
+for i in range(4) :
     left_frame.grid_columnconfigure(i, weight=1)
     
-# ID
-label_id = ctk.CTkLabel(left_frame, text="ID", fg_color="transparent", width=20)
-label_id.grid(row=0, column=0, padx=0,pady=5)
-input_entry_id = ctk.CTkEntry(left_frame, textvariable=analyze_vars["id"], placeholder_text="id")
-input_entry_id.grid(row=0, column=1, padx=10,pady=5)
+# # ID
+# label_id = ctk.CTkLabel(left_frame, text="ID", fg_color="transparent", width=20)
+# label_id.grid(row=0, column=0, padx=0,pady=5)
+# input_entry_id = ctk.CTkEntry(left_frame, textvariable=analyze_vars["id"], placeholder_text="id")
+# input_entry_id.grid(row=0, column=1, padx=10,pady=5)
 
-# PW
-label_pw = ctk.CTkLabel(left_frame, text="PW", fg_color="transparent", width=20)
-label_pw.grid(row=0, column=2, padx=0 , pady=5)
-input_entry_password = ctk.CTkEntry(left_frame, textvariable=analyze_vars["password"], placeholder_text="password")
-input_entry_password.grid(row=0, column=3, padx=(0, 10), pady=5)
-# input_entry_password.bind("<KeyRelease>", login_check_func) 
+# # PW
+# label_pw = ctk.CTkLabel(left_frame, text="PW", fg_color="transparent", width=20)
+# label_pw.grid(row=0, column=2, padx=0 , pady=5)
+# input_entry_password = ctk.CTkEntry(left_frame, textvariable=analyze_vars["password"], placeholder_text="password")
+# input_entry_password.grid(row=0, column=3, padx=(0, 10), pady=5)
+# # input_entry_password.bind("<KeyRelease>", login_check_func) 
 
-# Login Check button
-login_check_button = ctk.CTkButton(left_frame, text="Check", command=login_check_func, width=50, font=button_font)
-login_check_button.grid(row=0, column=4, pady=5)  
-login_check_button_tooltip = CustomTooltip(login_check_button, delay=0.05, message=f'ID와 Password가 유효한지 검사합니다.', justify="left",  fg_color="transparent")
+# # Login Check button
+# login_check_button = ctk.CTkButton(left_frame, text="Check", command=login_check_func, width=50, font=button_font)
+# login_check_button.grid(row=0, column=4, pady=5)  
+# login_check_button_tooltip = CustomTooltip(login_check_button, delay=0.05, message=f'ID와 Password가 유효한지 검사합니다.', justify="left",  fg_color="transparent")
 
-login_check_label = ctk.CTkLabel(left_frame, text="◀", fg_color="transparent", width=15)
-login_check_label.grid(row=0, column=5, pady=5, padx=5)  
+# login_check_label = ctk.CTkLabel(left_frame, text="◀", fg_color="transparent", width=15)
+# login_check_label.grid(row=0, column=5, pady=5, padx=5)  
 
-# Coverity Open
-get_open_url_button = ctk.CTkButton(left_frame, text="Web", command=open_website, width=50, font=button_font)
-get_open_url_button.grid(row=0, column=6, padx=5)
-get_open_url_button_tooltip = CustomTooltip(get_open_url_button, delay=0.05, message=f'Coverity 사이트를 엽니다.', justify="left",  fg_color="transparent")
+# # Coverity Open
+# get_open_url_button = ctk.CTkButton(left_frame, text="Web", command=open_website, width=50, font=button_font)
+# get_open_url_button.grid(row=0, column=6, padx=5)
+# get_open_url_button_tooltip = CustomTooltip(get_open_url_button, delay=0.05, message=f'Coverity 사이트를 엽니다.', justify="left",  fg_color="transparent")
+
+login_server_button = ctk.CTkButton(left_frame, text="로그인 / 서버 세팅", command=ServerSettingWindow)
+login_server_button.grid(row=0, column=6, padx=5)
 
 # 서버 상태 확인
 server_status_label = ctk.CTkLabel(left_frame, text="Checking...", width=40)
-server_status_label.grid(row=0, column=7, padx=5 )
+server_status_label.grid(row=0, column=7, padx=5)
 
 # help button
 help_button = ctk.CTkButton(left_frame, text="？", width=5, command=help_button, font=button_font)
-help_button.grid(row=0, column=8, padx=(5,0) )
+help_button.grid(row=0, column=8, padx=(5,0))
 
 # Right Frame
 right_frame = ctk.CTkFrame(buttons_frame, fg_color="transparent")
-right_frame.grid(row=1, column=0, sticky="ew", pady=10) 
+right_frame.grid(row=1, column=0, sticky="ew", pady=(20,0)) 
 
 for i in range(5) :
     right_frame.grid_columnconfigure(i, weight=1)
