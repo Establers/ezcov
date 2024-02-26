@@ -978,3 +978,5 @@ auto_set_devtool_path("CubeSuite+")
 
 app.resizable(width=False, height=False)
 app.mainloop()
+
+# END
