@@ -492,19 +492,14 @@ def set_iconimg():
         
 # set_iconimg()
 
-def open_config():
-    py_dir = os.path.dirname(__file__)
-    config_dir = os.path.join(py_dir, "ezcov_config.yaml")
-    try : 
-        with open(config_dir,'r') as yaml_file: 
-            config = yaml.safe_load(yaml_file)
-            # formatted_config = format_config(config)
-            # config_button_tooltip = CTkToolTip(get_config_button, delay=0.05, message=f'{formatted_config}', justify="left",  fg_color="transparent")            
-            # messagebox.showinfo("Get Config", f"설정을 정상적으로 가져왔습니다.")
-    except FileNotFoundError :
-        messagebox.showerror("Config File Not Found", f'{config_dir}\n설정 파일 찾기 실패. \n같은 경로에 설정 파일이 없습니다.')
-        return None
-    return config
+def get_config_analyze():
+    config = open_config()
+
+    analyze_vars["id"].set(config['analyze']['id'])
+    analyze_vars["stream"].set(config['analyze']['stream'])
+    analyze_vars["password"].set(config['analyze']['password'])
+    analyze_vars["url"].set(config['analyze']['url'])
+
 
 def save_config_yaml() :
     config_dir = filedialog.asksaveasfilename(defaultextension=".yaml", 
@@ -555,17 +550,6 @@ def load_saved_config_yaml():
         # login_check_func()
         set_stream_combobox_list()
         
-        
-        
-                
-def get_config_analyze():
-    config = open_config()
-
-    analyze_vars["id"].set(config['analyze']['id'])
-    analyze_vars["stream"].set(config['analyze']['stream'])
-    analyze_vars["password"].set(config['analyze']['password'])
-    analyze_vars["url"].set(config['analyze']['url'])
-    # print(analyze_vars)
 
 def open_website():
     # when Click this button, open the server website
