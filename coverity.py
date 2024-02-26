@@ -1,12 +1,10 @@
 import sys
 import customtkinter as ctk
-from tkinter import filedialog, messagebox, scrolledtext, Tk, Canvas, Menu, PhotoImage
+from tkinter import filedialog, messagebox, Tk, Menu, PhotoImage
 import subprocess
 import threading
 import queue
-
 import os
-
 import yaml
 import webbrowser
 from req import *
@@ -15,30 +13,34 @@ from req import *
 from CTkToolTip import *
 from config import *
 
-import json
-
 # drag and drop
 from tkinterdnd2 import DND_FILES, TkinterDnD
 
-ctk.set_appearance_mode("dark")
-
+# ctk setting
+ctk.set_appearance_mode("dark") 
 theme_json_dir = os.path.dirname(__file__)
 theme_json_path = os.path.join(theme_json_dir, "ezcov_theme.json")
 ctk.set_default_color_theme(theme_json_path)
 
 # drag and drop
 class Tk(ctk.CTk, TkinterDnD.DnDWrapper):
-    """Drag and Drop 구현을 위한 클래스 재정의
+    """Drag and Drop 구현을 위한 CTK 클래스 재정의
 
     Args:
         ctk (_type_): CustomTkinter
         TkinterDnD (_type_): Drag and Drop 구현 클래스
     """
     def __init__(self, *args, **kwargs):
-        super().__init__(*args, **kwargs)
+        # super().__init__(*args, **kwargs)
+        ctk.CTk.__init__(self, *args, **kwargs)
         self.TkdndVersion = TkinterDnD._require(self)
-
-
+        self.init_ui()
+        
+    def init_ui(self):
+        self.title("EZCov")
+        self.geometry("630x720")
+        self.resizable(width=False, height=False)
+        
 class CustomTooltip(CTkToolTip):
     """CTkTooltip을 상속받아 테두리 및 색깔을 지정한 클래스
 
@@ -53,13 +55,14 @@ class CustomTooltip(CTkToolTip):
         super().__init__(*args, **kwargs)
 
 app = Tk()
-app.title("EZ Coverity")
-app.geometry("630x720")
 
 ### Globla Variable ###
 execute_step = 0
 output_queue = queue.Queue()
 optionmenu_devenv =ctk.StringVar(app, value="CubeSuite+")
+command_arg = "/br"
+radio_var = ctk.StringVar(value="rebuild")  # Default selection
+radio_frame_hidden = 0
 
 # 경로를 저장할 StringVar 객체 생성
 file_path_vars = {
@@ -79,12 +82,6 @@ analyze_vars = {
     "id": ctk.StringVar(app),
     "password": ctk.StringVar(app)
 }
-
-radio_frame_hidden = 0
-radio_var = ctk.StringVar(value="rebuild")  # Default selection
-command_arg = "/br"
-
-### ### ### ### ### ###
 
 def read_output(process, queue):
     for line in iter(process.stdout.readline, ''):
@@ -590,13 +587,22 @@ def get_stream_list() :
     api = f'{url}/api/v2/streams?excludeRoles=false&locale=en_us&offset=0&rowCount=200'
     print("api ", api)
     streams = []
-    
+    response = None
     try :
         response = requests.get(api, auth=HTTPBasicAuth(analyze_vars["id"].get(), analyze_vars["password"].get()), timeout=1)
     except requests.exceptions.Timeout as e :
         print(e)
         messagebox.showerror("서버 주소 설정 에러","IP 주소를 다시 확인해주세요.\n해당 서버는 존재하지 않습니다.")
-
+    except requests.exceptions.RequestException as e :
+        messagebox.showerror("서버 주소 설정 에러","IP 주소를 다시 확인해주세요.\n해당 서버는 존재하지 않습니다.")
+    except requests.exceptions.ConnectionError as e :
+        messagebox.showerror("서버 주소 설정 에러","IP 주소를 다시 확인해주세요.\n해당 서버는 존재하지 않습니다.")
+    except requests.exceptions.MissingSchema as e :
+        messagebox.showerror("서버 주소 설정 에러","IP 주소를 다시 확인해주세요.\n해당 서버는 존재하지 않습니다.")
+    print("response: ", response)
+    
+    if response == None : return streams
+    
     if response.status_code == 200 : 
         data = response.json()
 
@@ -618,6 +624,7 @@ def set_stream_list(event) :
 
 def set_stream_combobox_list() :    
     stream = get_stream_list()
+    
     output_text.insert(ctk.END, "> Refresh Stream List\n");
     if stream == [] : 
         output_text.insert(ctk.END, "Stream list 불러오기 실패하였습니다.ㅜ-ㅜ, 로그인 문제, 서버 문제 등 여러 문제가 있을 수 있어요.\n")
@@ -976,7 +983,7 @@ init_command_button()
 ### 개발환경 초기 설정
 auto_set_devtool_path("CubeSuite+")
 
-app.resizable(width=False, height=False)
+
 app.mainloop()
 
 # END
