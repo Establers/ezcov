@@ -280,6 +280,7 @@ def is_valid_dir_path(user_path):
     if user_path == "" : 
         messagebox.showerror("저장 경로 에러","결과 저장 및 분석 자료 폴더가 선택되지 않았습니다.\n폴더를 선택해주세요.")
         return False
+    return True
     
     
 
@@ -328,7 +329,7 @@ def execute_coverity_commit_local() :
         # 명령어 실행
         # 버튼 비활성화
         disable_button(execute_commit_local_button)
-        
+
         process = subprocess.Popen(command, shell=True, stdout=subprocess.PIPE, stderr=subprocess.STDOUT, text=True)
         threading.Thread(target=read_output, args=(process, output_queue), daemon=True).start()
         threading.Thread(target=update_output, args=(output_text, output_queue), daemon=True).start()
