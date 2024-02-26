@@ -13,3 +13,12 @@
   - 결과 저장 폴더 드래그앤 드랍 구현
   - 메뉴 설정 
   - 에러 핸들링
+ 
+## sphinx
+`pip3 install sphinx`
+
+`sphinx-quickstart --v` : check install
+`sphinx-quickstart`
+
+
+
