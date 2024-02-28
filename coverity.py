@@ -1,4 +1,5 @@
 import sys
+import time
 import customtkinter as ctk
 from tkinter import filedialog, messagebox, Tk, Menu, PhotoImage
 import subprocess
@@ -63,6 +64,7 @@ optionmenu_devenv =ctk.StringVar(app, value="CubeSuite+")
 command_arg = "/br"
 radio_var = ctk.StringVar(value="rebuild")  # Default selection
 radio_frame_hidden = 0
+excute_running = False
 
 # 경로를 저장할 StringVar 객체 생성
 file_path_vars = {
@@ -125,16 +127,18 @@ def find_path(key, is_file=False, is_project=False):
     return path
 
 def check_process(process, callback, step):
+    global execute_step, excute_running
     print("check_process", process)
-    global execute_step
+    excute_running = True
     
     if process.poll() is None:  # 프로세스가 진행중
         app.after(500, lambda: check_process(process, callback, step))  # 500ms 후 다시 확인
     else:
-
         print("프로세스 종료")
+        excute_running = False
         if process.poll() == 0 :
             execute_step = step
+            
             if callback is not None:
                 callback()  # 콜백 함수 호출
                 if step == 1 :
@@ -204,7 +208,19 @@ def is_valid_path(path:list):
     return False
 
 
-def execute_command():
+def ask_execute_command() :
+    if excute_running :
+            if messagebox.askyesno("명령어 실행 중","명령어가 실행 중입니다.\n다시 명령어를 수행하시겠습니까?\n") :
+                return True
+            else :
+                return False
+    else :
+        return True
+
+def execute_command():    
+    if not ask_execute_command() : 
+        return
+    
     command =""
     try:
         csplus_hew_path = file_path_vars["csplus_hew"].get()
@@ -228,7 +244,7 @@ def execute_command():
             return
         
         # 버튼 비활성화
-        disable_button(execute_button)
+        # disable_button(execute_button)
 
         process = subprocess.Popen(command, shell=True, stdout=subprocess.PIPE, stderr=subprocess.STDOUT, text=True)
         threading.Thread(target=read_output, args=(process, output_queue), daemon=True).start()
@@ -239,6 +255,8 @@ def execute_command():
         messagebox.showerror("Error", f"An error occurred: {e}")
 
 def execute_analyze_command():
+    if not ask_execute_command() : 
+        return
     try:
         dir_path = file_path_vars["save_dir"].get()
         command = f"cov-analyze --dir \"{dir_path}\""
@@ -248,7 +266,7 @@ def execute_analyze_command():
         # subprocess.run(command, shell=True, check=True)
         
         # 버튼 비활성화
-        disable_button(execute_analyze_button)
+        # disable_button(execute_analyze_button)
 
         process = subprocess.Popen(command, shell=True, stdout=subprocess.PIPE, stderr=subprocess.STDOUT, text=True)
         threading.Thread(target=read_output, args=(process, output_queue), daemon=True).start()
@@ -260,7 +278,7 @@ def execute_analyze_command():
 
 
 def is_valid_stream(user_stream):
-    url = analyze_vars["url"].get()
+    url = analyze_vars["url"].get().rstrip("/")
     api = f'{url}/api/v2/streams/{user_stream}?locale=en_us'
     
     response = requests.get(api, auth=HTTPBasicAuth(analyze_vars["id"].get(), analyze_vars["password"].get()))
@@ -282,12 +300,14 @@ def is_valid_dir_path(user_path):
     
 
 def execute_commit_defects_command() :
+    if not ask_execute_command() : 
+        return
     try :
         dir_path = file_path_vars["save_dir"].get()
         id = analyze_vars["id"].get()
         stream = analyze_vars["stream"].get()
         password = analyze_vars["password"].get()
-        url = analyze_vars["url"].get()
+        url = analyze_vars["url"].get().rstrip("/")
 
         if not is_valid_dir_path(dir_path) : return
         if not is_valid_stream(stream) : return
@@ -296,7 +316,7 @@ def execute_commit_defects_command() :
 
         # 명령어 실행
         # 버튼 비활성화
-        disable_button(execute_commit_button)
+        # disable_button(execute_commit_button)
         process = subprocess.Popen(command, shell=True, stdout=subprocess.PIPE, stderr=subprocess.STDOUT, text=True)
         threading.Thread(target=read_output, args=(process, output_queue), daemon=True).start()
         threading.Thread(target=update_output, args=(output_text, output_queue), daemon=True).start()
@@ -307,6 +327,8 @@ def execute_commit_defects_command() :
 
 
 def execute_coverity_commit_local() :
+    if not ask_execute_command() : 
+        return    
     """ 서버에 업로드하지 않고 로컬에 결과를 분석하고 싶을 때 사용.(서버 사용못하는 경우)
     1. 저장할 경로 선택
     2. 선택 후, 명령어 실행
@@ -325,18 +347,23 @@ def execute_coverity_commit_local() :
 
         # 명령어 실행
         # 버튼 비활성화
-        disable_button(execute_commit_local_button)
+        # disable_button(execute_commit_local_button)
 
         process = subprocess.Popen(command, shell=True, stdout=subprocess.PIPE, stderr=subprocess.STDOUT, text=True)
         threading.Thread(target=read_output, args=(process, output_queue), daemon=True).start()
         threading.Thread(target=update_output, args=(output_text, output_queue), daemon=True).start()
         
-        check_process(process, lambda:on_process_complete(command), 0)
+        check_process(process, lambda:on_process_complete(command), 3)
     except subprocess.CalledProcessError as e:
         messagebox.showerror("Error", f"An error occurred: {e}")
 
 def dnd_path_set_save_dir(event):
-    dnd_file_path = event.data
+    if " " in event.data : 
+        dnd_file_path = event.data[1:-1] # 공백이 있으면 { ... } 로 랩핑된다.
+    else :
+        dnd_file_path = event.data
+
+    print("dnd 폴더 : ", dnd_file_path)
     if dnd_file_path == "" or not os.path.isdir(dnd_file_path): 
         messagebox.showerror("폴더를 드래그앤 드랍","파일이 아닌 폴더를 드래그앤 드랍해주세요.")
         return
@@ -353,7 +380,12 @@ def set_auto_find_tools(tool):
 
 
 def dnd_path_set_project_file(event):
-    dnd_file_path = event.data
+    if " " in event.data : 
+        dnd_file_path = event.data[1:-1] # 공백이 있으면 {...} 로 랩핑된다.
+    else :
+        dnd_file_path = event.data
+    print("dnd file : ", dnd_file_path)
+
     if not os.path.isfile(dnd_file_path) :
         messagebox.showerror("유효하지 않은 파일","폴더는 불가합니다.\n프로젝트 파일[*.mtpj, *.hws]만 드래그앤 드랍이 가능합니다.")
         return
@@ -490,7 +522,7 @@ def set_iconimg():
     app.wm_iconbitmap()
     app.iconphoto(True, icon)
         
-# set_iconimg()
+set_iconimg()
 
 def get_config_analyze():
     config = open_config()
@@ -553,7 +585,7 @@ def load_saved_config_yaml():
 
 def open_website():
     # when Click this button, open the server website
-    open_url = analyze_vars["url"].get()
+    open_url = analyze_vars["url"].get().rstrip("/")
     webbrowser.open(open_url)
 
 def refresh_server_status(app, url):
@@ -563,11 +595,11 @@ def refresh_server_status(app, url):
         server_status_button.configure(text="서버", text_color="#001100", fg_color=("#55ee55", "#55ee55"), width=30, hover_color="#33ff33")
     else :
         server_status_button.configure(text="서버", text_color="#001100", fg_color=("#ee5555", "#ee5555"), width=30, hover_color="#ff3333")
-    app.after(10000, refresh_server_status, app,  analyze_vars["url"].get())
+    app.after(10000, refresh_server_status, app,  analyze_vars["url"].get().rstrip("/"))
 
 def get_stream_list() :
     print("get_stream_list")
-    url = analyze_vars["url"].get()
+    url = analyze_vars["url"].get().rstrip("/")
     api = f'{url}/api/v2/streams?excludeRoles=false&locale=en_us&offset=0&rowCount=200'
     print("api ", api)
     streams = []
@@ -689,9 +721,10 @@ def open_system_Env_var():
     coverity\bin 경로를 Path 에 추가하기
     """
     if messagebox.askyesno("Coverity 설치 폴더 시스템 환경 변수 등록", "Coverity 설치 폴더 시스템 환경 변수에 등록해야합니다.\n\n \
-                            \nCoverity 파일 압축 해제한 곳에서 \n...\\cov-analysis-win64-2023.12.0\\bin 폴더를 선택해주세요.\n\n창을 여시겠습니까?") :
+                            \nCoverity 파일 압축 해제한 곳에서 \n...\\cov-analysis-win64-2023.12.0\\bin 폴더를 선택해주세요.\n자세한 사항은 메뉴얼을 참고해주세요.\n\n환경 변수창을 여시겠습니까?") :
         os.system('rundll32.exe sysdm.cpl,EditEnvironmentVariables')
         messagebox.showinfo("재시작 필요","프로그램을 종료합니다.\n시스템 환경 변수 적용을 위해 프로그램을 다시 시작해주세요")
+        time.sleep(3)
         sys.exit()
     else :
         return
@@ -705,6 +738,7 @@ def help_button():
     help_menu_bar()
     pass
 
+
 class ServerSettingWindow():
     def __init__(self, master):
         self.top_window = ctk.CTkToplevel(app)
@@ -715,9 +749,10 @@ class ServerSettingWindow():
         self.setup_ui()
 
     def login_check_func(self):
-        url = analyze_vars["url"].get()
-        api = f'{url}/api/v2/signInConfigurations?locale=en_us'
-
+        url = analyze_vars["url"].get().rstrip("/")
+        # api = f'{url}/api/v2/signInConfigurations?locale=en_us'
+        api = f'{url}/api/v2/users/{analyze_vars["id"].get()}?locale=en_us'
+        print("api : ", api)
         try :
             response = requests.get(api, auth=HTTPBasicAuth(analyze_vars["id"].get(), analyze_vars["password"].get()), timeout=1)
         except requests.exceptions.Timeout as e :
@@ -729,7 +764,18 @@ class ServerSettingWindow():
             self.login_check_label.configure(text="●", text_color="#55ee55", fg_color="transparent")
             return True
 
+        elif response.status_code == 401 :
+            self.login_check_label.configure(text="▲", text_color="#ee5555", fg_color="transparent")
+            messagebox.showerror("ID, PW 에러","PassWord가 올바르지 않습니다.")
+            return False
+
+        elif response.status_code == 404 :
+            self.login_check_label.configure(text="▲", text_color="#ee5555", fg_color="transparent")
+            messagebox.showerror("ID, PW 에러","해당 ID는 존재하지 않습니다.")
+            return False
+        
         else :
+            print(response)
             self.login_check_label.configure(text="▲", text_color="#ee5555", fg_color="transparent")
             messagebox.showerror("ID, PW 에러","ID와 PW를 다시 확인해주세요.")
             print("can not get response, id pw error")
@@ -752,7 +798,7 @@ class ServerSettingWindow():
         # PW
         label_pw = ctk.CTkLabel(left_frame, text="PW", fg_color="transparent", width=20)
         label_pw.grid(row=1, column=0, padx=0 , pady=5)
-        input_entry_password = ctk.CTkEntry(left_frame, textvariable=analyze_vars["password"], placeholder_text="password")
+        input_entry_password = ctk.CTkEntry(left_frame, textvariable=analyze_vars["password"], placeholder_text="password", show="*")
         input_entry_password.grid(row=1, column=1, padx=10, pady=5)
         
         # server
@@ -783,6 +829,53 @@ def csplus_hew_directory_modal():
     label_dev.pack(pady=10,padx=(10, 0))
     create_path_selector(dev_window, "csplus_hew", "개발환경", is_file=True)
     
+def init_fast_guide():
+    bar = "==============================================================\n"
+    output_text.insert(ctk.END, bar);
+    output_text.see(ctk.END)
+    manual = [
+        "CubeSuite+ 드랍 다운 메뉴를 통해 개발환경 세팅. ",
+        "[RX, R32C 컴파일러 세팅] 버튼 클릭. 초기 한번만 필요",
+        "[프로젝트 파일] 버튼 클릭 --> Coverity 분석을 할 프로젝트를 등록.",
+        "[결과 저장 및 분석 폴더] 버튼 클릭 --> Coverity 빌드 결과 저장 폴더경로를 등록",
+        "[Stream 선택 (새로고침)] 버턴 클릭 --> 분석 결과를 업로드할 Stream 선택.",
+        " ㄴ 따로 Stream 을 만들지 않았을 경우, 서버에서 Project와 Stream을 생성해주세요.",
+        " ㄴ [Project] : 모델",
+        " ㄴ [Stream] : 해당 모델의 Branch, tag 개념으로 이해하시면 됩니다.",
+        "CubeSuite+ 의 경우 빌드 방법 선택, HEW의 경우 IDE가 켜질 때 빌드를 따로 해주세요.",
+        "[프로젝트 빌드] 버튼 클릭, 이후 버튼을 눌러주시면 Coverity 분석 종료.",
+    ]
+    for idx, m in enumerate(manual) : 
+        message = f'{idx + 1}. {m}\n'
+        output_text.insert(ctk.END, message);
+    
+    bar = "==============================================================\n"
+    output_text.insert(ctk.END, bar);
+    output_text.see(ctk.END)
+
+def is_exist_license_dat():
+    path_list = os.environ['Path']
+    path_list = path_list.split(";")
+    target_path = ""
+    for path in path_list : 
+        if "cov-analysis" in path and "bin" in path[-5:] :
+            target_path = os.path.join(path, "license.dat")
+            print("license_path : ", target_path)
+            break
+    
+    if os.path.exists(target_path) :
+        return True
+    else :
+        return False
+    
+    
+    
+def alert_add_license_dat() :
+    if not is_exist_license_dat() :
+        messagebox.showerror("라이센스 파일 등록 필요", "coverity 폴더 내 `license.dat` 파일이 없습니다.\n메뉴얼을 참고하여 등록해주세요.") 
+        return False
+    return True
+
 
 toplevel_window = None
  
@@ -951,22 +1044,25 @@ def light_dark_mode() :
         ctk.set_appearance_mode("Light")
 
 light_dark_mode_btn = ctk.CTkButton(last_frame, text="Mode", command=light_dark_mode,width=40, font=button_font)
-light_dark_mode_btn.pack(side="right", anchor="e")
+# light_dark_mode_btn.pack(side="right", anchor="e") # 원인 미상 에러 있을지모르니 에러처리
 
 
 ### coverity 환경 변수 설정 확인
 set_system_path()
+### license.dat 파일 확인
+alert_add_license_dat()
 ### init : 기본 설정 
 get_config_analyze()
 ### init : 서버 상태 확인
-refresh_server_status(app, analyze_vars["url"].get())
+refresh_server_status(app, analyze_vars["url"].get().rstrip("/"))
 ### init : 스트림 불러오기
 set_stream_combobox_list()
 ### init : cov 명령어 비활/활성화
 init_command_button()
 ### 개발환경 초기 설정
 auto_set_devtool_path("CubeSuite+")
-
+### 간단 가이드 출력
+init_fast_guide()
 
 app.mainloop()
 
