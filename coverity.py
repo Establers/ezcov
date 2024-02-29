@@ -357,16 +357,28 @@ def execute_coverity_commit_local() :
     except subprocess.CalledProcessError as e:
         messagebox.showerror("Error", f"An error occurred: {e}")
 
-def dnd_path_set_save_dir(event):
-    if " " in event.data : 
-        dnd_file_path = event.data[1:-1] # 공백이 있으면 { ... } 로 랩핑된다.
+def get_valid_filelist(event):
+    if len(app.tk.splitlist(event.data)) >= 2 :
+        print(app.tk.splitlist(event.data))
+        messagebox.showerror("여러개의 폴더 및 파일 감지","하나의 파일 및 폴더만 지원가능합니다.")
+        return False
+    
     else :
-        dnd_file_path = event.data
+        return app.tk.splitlist(event.data)[0]
+
+def dnd_path_set_save_dir(event):
+    dnd_file_path = get_valid_filelist(event)
+    if dnd_file_path == False : return
+
+    # if " " in event.data : 
+    #     dnd_file_path = event.data[1:-1] # 공백이 있으면 { ... } 로 랩핑된다.
+    # else :
+    #     dnd_file_path = event.data
 
     print("dnd 폴더 : ", dnd_file_path)
     if dnd_file_path == "" or not os.path.isdir(dnd_file_path): 
         messagebox.showerror("폴더를 드래그앤 드랍","파일이 아닌 폴더를 드래그앤 드랍해주세요.")
-        return
+        return False
         
     file_path_vars["save_dir"].set(dnd_file_path)
 
@@ -380,16 +392,21 @@ def set_auto_find_tools(tool):
 
 
 def dnd_path_set_project_file(event):
-    if " " in event.data : 
-        dnd_file_path = event.data[1:-1] # 공백이 있으면 {...} 로 랩핑된다.
-    else :
-        dnd_file_path = event.data
-    print("dnd file : ", dnd_file_path)
+    dnd_file_path = get_valid_filelist(event)
+    if dnd_file_path == False : return
+
+    # if " " in event.data : 
+    #     dnd_file_path = event.data[1:-1] # 공백이 있으면 {...} 로 랩핑된다.
+    # else :
+    #     dnd_file_path = event.data
+    # print("dnd file : ", dnd_file_path)
 
     if not os.path.isfile(dnd_file_path) :
         messagebox.showerror("유효하지 않은 파일","폴더는 불가합니다.\n프로젝트 파일[*.mtpj, *.hws]만 드래그앤 드랍이 가능합니다.")
         return
-    
+    _, file_extension = os.path.splitext(dnd_file_path)
+    print(f'파일 확장자 : {file_extension}')
+
     if "mtpj" in dnd_file_path[-4:] :
         auto_set_devtool_path("CubeSuite+")
         file_path_vars["project_file"].set(dnd_file_path)
@@ -467,12 +484,14 @@ def on_radio_select():
 
 def radio_button_hew():
     radio_button_label.configure(text="Hew : 개발환경에서 직접 빌드")
+    radio_button_disable_all()
     radio_build.deselect()
     radio_clean_build.deselect()
     radio_rebuild.deselect()
 
 def radio_button_csplus():
     radio_button_label.configure(text="CubeSuite+ : 빌드 방법 선택")
+    radio_button_able_all()
     radio_build.deselect()
     radio_clean_build.deselect()
     radio_rebuild.select()
@@ -838,7 +857,7 @@ def init_fast_guide():
         "[RX, R32C 컴파일러 세팅] 버튼 클릭. 초기 한번만 필요",
         "[프로젝트 파일] 버튼 클릭 --> Coverity 분석을 할 프로젝트를 등록.",
         "[결과 저장 및 분석 폴더] 버튼 클릭 --> Coverity 빌드 결과 저장 폴더경로를 등록",
-        "[Stream 선택 (새로고침)] 버턴 클릭 --> 분석 결과를 업로드할 Stream 선택.",
+        "[Stream 선택 (새로고침)] 버튼 클릭 --> 분석 결과를 업로드할 Stream 선택.",
         " ㄴ 따로 Stream 을 만들지 않았을 경우, 서버에서 Project와 Stream을 생성해주세요.",
         " ㄴ [Project] : 모델",
         " ㄴ [Stream] : 해당 모델의 Branch, tag 개념으로 이해하시면 됩니다.",
@@ -868,13 +887,21 @@ def is_exist_license_dat():
     else :
         return False
     
-    
-    
 def alert_add_license_dat() :
     if not is_exist_license_dat() :
         messagebox.showerror("라이센스 파일 등록 필요", "coverity 폴더 내 `license.dat` 파일이 없습니다.\n메뉴얼을 참고하여 등록해주세요.") 
         return False
     return True
+
+def radio_button_able_all() :
+    radio_build.configure(state="normal")
+    radio_rebuild.configure(state="normal")
+    radio_clean_build.configure(state="normal")
+
+def radio_button_disable_all() :
+    radio_build.configure(state="disabled")
+    radio_rebuild.configure(state="disabled")
+    radio_clean_build.configure(state="disabled")
 
 
 toplevel_window = None
@@ -983,15 +1010,15 @@ radio_frame.pack(pady=10)
 radio_button_label = ctk.CTkLabel(radio_frame, text="CubeSuite+ : 빌드 방법 선택", fg_color="transparent", width=80)
 radio_button_label.grid(row=0, column=0, padx=10, pady=10)
 radio_build = ctk.CTkRadioButton(radio_frame, text="Build", variable=radio_var, value="build", command=on_radio_select)
-radio_build.grid(row=0, column=1, padx=10, pady=10)
+# radio_build.grid(row=0, column=1, padx=10, pady=10)
 radio_build_tooltip = CustomTooltip(radio_build, delay=0.05, message=f'[Only CubeSuite+] cov-build 명령어 수행 시, build를 합니다.', justify="left",  fg_color="transparent")
 
 radio_clean_build = ctk.CTkRadioButton(radio_frame, text="Clean and Build", variable=radio_var, value="clean and build", command=on_radio_select)
-radio_clean_build.grid(row=0, column=2, padx=10, pady=10)
+radio_clean_build.grid(row=0, column=1, padx=10, pady=10)
 radio_clean_build_tooltip = CustomTooltip(radio_clean_build, delay=0.05, message=f'[Only CubeSuite+] cov-build 명령어 수행 시, clean 후 build를 합니다.', justify="left",  fg_color="transparent")
 
 radio_rebuild = ctk.CTkRadioButton(radio_frame, text="Rebuild", variable=radio_var, value="rebuild", command=on_radio_select)
-radio_rebuild.grid(row=0, column=3, padx=10, pady=10)
+radio_rebuild.grid(row=0, column=2, padx=10, pady=10)
 radio_rebuild_tooltip = CustomTooltip(radio_rebuild, delay=0.05, message=f'[Only CubeSuite+] cov-build 명령어 수행 시, rebuild를 합니다.', justify="left",  fg_color="transparent")
 
 cov_frame = ctk.CTkFrame(app)
