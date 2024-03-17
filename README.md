@@ -6,13 +6,15 @@
 - add path : customtkinter root
 - add file : ezcov_config.yaml, ezcov_theme.json
 
+## main
+![image](https://github.com/Establers/ezcov/assets/44702967/9af40435-f505-4721-bcd1-1f7364160175)
 
-## version
-- [24-02-22]
-  - 프로젝트 파일, 
-  - 결과 저장 폴더 드래그앤 드랍 구현
-  - 메뉴 설정 
-  - 에러 핸들링
+### select develop env
+![image](https://github.com/Establers/ezcov/assets/44702967/5ceaa6b5-5d59-4661-92e0-7d9c668693ef)
+
+### configure coverity server setting
+![image](https://github.com/Establers/ezcov/assets/44702967/e3af50f1-6095-4693-89f7-2a8b4fd673c1)
+
  
 ## sphinx
 `pip3 install sphinx`
