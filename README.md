@@ -6,8 +6,6 @@
 - add path : customtkinter root
 - add file : ezcov_config.yaml, ezcov_theme.json
 
-## main
-![image](https://github.com/Establers/ezcov/assets/44702967/9af40435-f505-4721-bcd1-1f7364160175)
 
 ### select develop env
 ![image](https://github.com/Establers/ezcov/assets/44702967/5ceaa6b5-5d59-4661-92e0-7d9c668693ef)
